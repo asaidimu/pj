@@ -1,3 +1,10 @@
+## [1.0.5](https://github.com/augustinesaidimu/pj/compare/v1.0.4...v1.0.5) (2021-12-22)
+
+
+### Bug Fixes
+
+* release ([0d24c4f](https://github.com/augustinesaidimu/pj/commit/0d24c4fefd11f5ff9e7d969584a2c2d17a206364))
+
 ## [1.0.4](https://github.com/augustinesaidimu/pj/compare/v1.0.3...v1.0.4) (2021-12-22)
 
 
