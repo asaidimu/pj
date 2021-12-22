@@ -1,3 +1,11 @@
+# [1.1.0](https://github.com/augustinesaidimu/pj/compare/v1.0.8...v1.1.0) (2021-12-22)
+
+
+### Features
+
+* added example module ([7bd0601](https://github.com/augustinesaidimu/pj/commit/7bd0601639e1cc678ae4e76567c17c36d8224bea))
+* improved installer ([93e2121](https://github.com/augustinesaidimu/pj/commit/93e212107e4e63257a9b6a207b4146768f7b1b5f))
+
 ## [1.0.8](https://github.com/augustinesaidimu/pj/compare/v1.0.7...v1.0.8) (2021-12-22)
 
 
