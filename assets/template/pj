@@ -1,0 +1,11 @@
+#!/usr/bin/env sh
+
+  # -- set framework path --
+  export FRAMEWORK_NAME="{{name}}"
+  export FRAMEWORK_PATH="{{framework}}"
+  export FRAMEWORK_RELEASE="{{release}}"
+  export FRAMEWORK_URL="{{url}}"
+  export FRAMEWORK_VERSION="$FRAMEWORK_RELEASE v{{version}}"
+
+  # -- bootstrap --
+  . "$FRAMEWORK_PATH/src/bootstrap.sh"
