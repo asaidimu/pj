@@ -243,3 +243,4 @@ bs-config.json
 yarn-error.log
 public/bs-config.js
 build
+install.sh

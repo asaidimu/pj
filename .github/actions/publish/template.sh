@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 
-FRAMEWORK_VERSION="{{ version }}"
-FRAMEWORK_URL="{{ url }}"
+FRAMEWORK_VERSION="{{version}}"
+FRAMEWORK_URL="{{url}}"
 FRAMEWORK_NAME="pj"
 FRAMEWORK_BRANCH="main"
 

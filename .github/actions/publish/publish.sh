@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 
 _set_up(){
-  export VERSION=$(git describe --exact-match --abbrev=0 --tags 2>&/dev/null)
+  export VERSION=$(git describe --exact-match --abbrev=0 --tags 2>/dev/null)
   export SCRIPT="install.sh"
   export SCRIPT_URL="https://github.com/${GITHUB_REPOSITORY}"
 }
@@ -13,11 +13,6 @@ _commit_is_tagged () {
     } || {
         return 0
     }
-}
-
-_error(){
-  echo "[ error ]: $@"
-  exit 1
 }
 
 _release(){
@@ -37,20 +32,19 @@ _update_template(){
 
 _build(){
    cp template.sh install.sh
-
-  _update_template inspect.sh $(cat <<EOF
+  _update_template install.sh $(cat <<EOF
 version:$VERSION
 url:$SCRIPT_URL
 EOF
 )
 }
 
-_commit_is_tagged || {
-  echo "commit not tagged, not releasing new document version"
-  exit 0
-} || {
+if _commit_is_tagged; then
   _set_up
   _build
   _release
-}
+else
+  echo "commit not tagged, not releasing new document version"
+  exit 0
+fi
 
