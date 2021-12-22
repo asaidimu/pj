@@ -1,32 +1,36 @@
-#!/usr/bin/env sh
+#!/usr/bin/env bash
 
-FRAMEWORK_VERSION="{{version}}"
-FRAMEWORK_URL="{{url}}"
 FRAMEWORK_NAME="pj"
 FRAMEWORK_BRANCH="main"
+FRAMEWORK_VERSION="{{version}}"
+FRAMEWORK_URL="{{url}}"
 
 FRAMEWORK_PATH="$HOME/.local/share/$FRAMEWORK_NAME"
 FRAMEWORK_BINARY="$HOME/.local/bin/$FRAMEWORK_NAME"
 
-_dir() {
+_clean(){
     if [ -d $FRAMEWORK_PATH ]; then
         rm -rf $FRAMEWORK_PATH
     fi
-    mkdir -p $FRAMEWORK_PATH
 
-    git clone $FRAMEWORK_URL --branch=$FRAMEWORK_BRANCH $FRAMEWORK_PATH
-
-    if [ $? -ne 0 ]; then
-        error "could not clone framework!" $ERROR
-    fi
-}
-
-_binary() {
     if [ -e $FRAMEWORK_BINARY ]; then
         rm -rf $FRAMEWORK_BINARY
     fi
 
-    cat > $FRAMEWORK_BINARY << EOF
+    sleep 0.5
+}
+
+_clone_repo() {
+    mkdir -p $FRAMEWORK_PATH
+
+    git clone $FRAMEWORK_URL --branch=$FRAMEWORK_BRANCH $FRAMEWORK_PATH &> /dev/null
+
+    return $?
+}
+
+_install_script() {
+
+cat > $FRAMEWORK_BINARY << EOF
 #!/usr/bin/env sh
 
 # -- set framework path --
@@ -39,99 +43,136 @@ export FRAMEWORK_VERSION="$FRAMEWORK_VERSION"
 # -- bootstrap --
 . "\$FRAMEWORK_PATH/src/bootstrap.sh"
 EOF
-    [ -e $FRAMEWORK_BINARY ] && chmod +x $FRAMEWORK_BINARY || error "could not install!"
+    if [ -e $FRAMEWORK_BINARY ]; then
+        chmod +x $FRAMEWORK_BINARY
+    else
+        return 2
+    fi
+    sleep 0.2
+}
+
+_main(){
+    _banner
+
+    # -- clean up --
+    _clean &
+    pid=$!
+    _load "Initializing" $pid
+    wait $pid || _abort
+
+    # -- clone repo --
+    _clone_repo &
+    pid=$!
+    _load "Fetching repo" $pid
+    wait $pid || _abort
+
+    # -- add command to path --
+    _install_script &
+    pid=$!
+    _load "Installing script" $pid
+    wait $pid || _abort
+
+    printf "$(green "[") Installed $FRAMEWORK_NAME $(bold $FRAMEWORK_VERSION) $(green "]")\n"
+}
+
+# ---------------------------------------------------------------------------- #
+_abort(){
+    printf "$(red "[") Install failed ! $(red "]")\n"
+    exit 27
 }
 
 bold(){
   echo "\033[1;37;48m${@}\033[0m";
 }
-bold_blue(){
-  echo "\033[1;34;48m${@}\033[0m";
-}
-bold_cyan(){
-  echo "\033[1;36;48m${@}\033[0m";
-}
-bold_green(){
-  echo "\033[1;32;48m${@}\033[0m";
-}
-bold_grey(){
-  echo "\033[1;30;48m${@}\033[0m";
-}
-bold_red(){
+
+red(){
   echo "\033[1;31;48m${@}\033[0m";
 }
-bold_yellow(){
-  echo "\033[1;33;48m${@}\033[0m";
-}
-blue(){
-  echo "\033[0;34;48m${@}\033[0m";
-}
-cyan(){
-  echo "\033[0;36;48m${@}\033[0m";
-}
-green(){
-  echo "\033[0;32;48m${@}\033[0m";
-}
-grey(){
-  echo "\033[0;37;48m${@}\033[0m";
-}
-red(){
-  echo "\033[0;31;48m${@}\033[0m";
-}
+
 yellow(){
-  echo "\033[0;33;48m${@}\033[0m";
-}
-header(){
-  echo "\033[35m${@}\033[0m";
-}
-underline(){
-  echo "\033[4m${@}\033[0m";
-}
-time_stamp(){
-  echo "$(bold_grey `date +%H:%M:%S`)"
+  printf "\033[1;33;48m${@}\033[0m";
 }
 
-log(){
-  [ $FLAG_SILENT -eq 0 ] || return
-
-  title=$(bold "$FRAMEWORK_NAME @ $FRAMEWORK_MODULE_NAME")
-  stamp=$(time_stamp)
-
-  out="$(bold '[')$title $stamp$(bold ']') $@"
-
-  echo "$out"
+green(){
+  printf "\033[1;32;48m${@}\033[0m";
 }
 
-inform(){  echo "$(bold_blue  info)" "${@}"; }
-success(){ echo "$(bold_green  success)" "${@}";}
-warn(){    echo "$(bold_yellow  warning)" "${@}";}
-
-debug(){
-  silent=$FLAG_SILENT
-  export FLAG_SILENT=0
-  log "$(bold_blue   debug)" "${@}";
-  export FLAG_SILENT=$silent;
+_clear_line(){
+    printf "\033[1000D" # go to begining of line
+    printf "\033[0K" # clear line
 }
 
-error(){
-  export FLAG_SILENT=0
-  [ -n "$1" ] && message=$1 || message="an unexpected error occured !"
-  [ -n "$2" ] && error=$2 || error=$ERROR
-
-  echo "$(bold_red error)" "${message}";
-  exit $error
+_move_left(){
+    index="$1"
+    printf "\033[${index}D"
 }
 
-notify(){
-  [ $FLAG_SILENT -eq 0 ] || return
-
-  status=$?; success_msg="$1"; failure_msg="$2";
-
-  [ $status -eq 0 ] && {
-    success "$success_msg" && return
-  } || {
-    error "$failure_msg" "$status"
-  }
+_move_right(){
+    index="$1"
+    printf "\033[${index}C"
 }
 
-_dir && _binary && inform "installation complete"
+_load() {
+    text="$1"
+    pid="$2"
+
+    waiting=1
+    while [ $waiting -eq 1 ]; do
+        green "[ "
+        printf "${text}    "
+        green " ]"
+        sleep 0.3
+        _clear_line
+
+        green "[ "
+        printf "${text} .  "
+        green " ]"
+        sleep 0.3
+        _clear_line
+
+        green "[ "
+        printf "${text} .. "
+        green " ]"
+        sleep 0.3
+        _clear_line
+
+        green "[ "
+        printf "${text} ..."
+        green " ]"
+
+        ps cax | grep -E "\s?$pid" 2>&1 > /dev/null
+        if [ $? -ne 0 ]; then
+            waiting=0
+        fi
+        sleep 0.3
+        _clear_line
+    done
+}
+
+_banner(){
+    duration=0.03
+    printf "\n" && sleep $duration
+    printf "\n" && sleep $duration
+    yellow '          ,ggggggggggg,\n'        && sleep $duration
+    yellow '          dP"""88""""""Y8,\n'     && sleep $duration
+    yellow '          Yb,  88      `8b \n'    && sleep $duration
+    yellow '           `"  88      ,8P gg\n'  && sleep $duration
+    yellow '               88aaaad8P"  ""\n'  && sleep $duration
+    yellow '               88"""""     gg\n'  && sleep $duration
+    yellow '               88          8I\n'  && sleep $duration
+    yellow '               88         ,8I\n'  && sleep $duration
+    yellow '               88       _,d8I\n'  && sleep $duration
+    yellow '               88     888P"888\n' && sleep $duration
+    yellow '                         ,d8I\n'  && sleep $duration
+    yellow "                       ,dP'8I\n"  && sleep $duration
+    yellow '                      ,8"  8I\n'  && sleep $duration
+    yellow '                      I8   8I\n'  && sleep $duration
+    yellow '                      `8, ,8I\n'  && sleep $duration
+    yellow '                       `Y8P\n'    && sleep $duration
+    printf "\n"
+    printf "\n"
+}
+
+# ---------------------------------------------------------------------------- #
+
+_main $@
