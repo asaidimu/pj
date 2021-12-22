@@ -1,7 +1,6 @@
 FROM archlinux:latest
 
 COPY publish.sh publish.sh
-COPY template.sh template.sh
 
 RUN yes | pacman -Syyu
 RUN yes | pacman -S git github-cli
