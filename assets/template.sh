@@ -37,7 +37,7 @@ export FRAMEWORK_URL="$FRAMEWORK_URL"
 export FRAMEWORK_VERSION="$FRAMEWORK_VERSION"
 
 # -- bootstrap --
-. "$FRAMEWORK_PATH/src/bootstrap.sh"
+. "\$FRAMEWORK_PATH/src/bootstrap.sh"
 EOF
     [ -e $FRAMEWORK_BINARY ] && chmod +x $FRAMEWORK_BINARY || error "could not install!"
 }
