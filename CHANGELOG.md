@@ -1,3 +1,10 @@
+## [1.0.7](https://github.com/augustinesaidimu/pj/compare/v1.0.6...v1.0.7) (2021-12-22)
+
+
+### Bug Fixes
+
+* remove versioned install ([6d5f5f4](https://github.com/augustinesaidimu/pj/commit/6d5f5f42a15396c93c6a7715d31bac70e3d917ec))
+
 ## [1.0.6](https://github.com/augustinesaidimu/pj/compare/v1.0.5...v1.0.6) (2021-12-22)
 
 
