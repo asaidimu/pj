@@ -23,45 +23,19 @@ EOF
 }
 
 upgrade(){
-  INSTALL_DIR="$HOME/.local/lib"
+  repo=$(echo $FRAMEWORK_URL | sed -E "s/.*com.//g")
+  json=$(curl -s -H "Accept: application/vnd.github.v3+json" https://api.github.com/repos/$repo/releases/latest)
+  next=$(echo $json | jq ".tag_name" | sed "s/\"//g")
 
-  FRAMEWORK_PATH="$INSTALL_DIR/$FRAMEWORK_NAME"
+  if [ $next > $FRAMEWORK_VERSION ]; then
+      cd $FRAMEWORK_PATH
+      git pull origin
+      cat CHANGELOG.md
+      inform "upgrade to version $(green $next) successfull!"
+  else
+      inform "nothing to do!"
+  fi
 
-  [ -d $FRAMEWORK_PATH ] &&  {
-
-    rm -rf $FRAMEWORK_PATH
-
-    inform "removed previous version"
-  }
-
-  inform "cloning $FRAMEWORK_RELEASE"
-  git clone $FRAMEWORK_URL --branch=$FRAMEWORK_RELEASE $FRAMEWORK_PATH 2>> /dev/null # logs.txt
-  [ $? -eq 0 ] ||  {
-    error "could not clone framework!" $ERROR
-  }
-
-  FRAMEWORK_BINARY="$HOME/.local/bin/$FRAMEWORK_NAME"
-
-  [ -e $FRAMEWORK_BINARY ] && {
-    rm -rf $FRAMEWORK_BINARY
-    inform "removed previous entry point"
-  }
-
-  inform "adding entry point"
-  extract_file "template/pj" "$FRAMEWORK_BINARY"
-
-  VERSION=$(ag "version" "$ASSET_PATH/data/project" | sed -E "s/^.*:\s*//g")
-  update_template $FRAMEWORK_BINARY $(cat <<EOF
-name:$FRAMEWORK_NAME
-version:$VERSION
-framework:$FRAMEWORK_PATH
-release:$FRAMEWORK_RELEASE
-url:$FRAMEWORK_URL
-EOF
-)
-  chmod +x "$FRAMEWORK_BINARY"
-
-  inform "upgrade to version $(green $VERSION) successfull!"
 }
 
 init(){
