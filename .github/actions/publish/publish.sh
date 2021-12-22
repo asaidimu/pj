@@ -31,7 +31,7 @@ _update_template(){
 }
 
 _build(){
-   cp template.sh install.sh
+   cp ./template.sh install.sh
   _update_template install.sh $(cat <<EOF
 version:$VERSION
 url:$SCRIPT_URL

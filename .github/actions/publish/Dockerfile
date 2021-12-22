@@ -4,6 +4,6 @@ COPY publish.sh publish.sh
 COPY template.sh template.sh
 
 RUN yes | pacman -Syyu
-RUN yes | pacman -S git
+RUN yes | pacman -S git github-cli
 
 ENTRYPOINT ["/publish.sh"]
