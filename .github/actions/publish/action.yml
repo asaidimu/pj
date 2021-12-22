@@ -1,0 +1,11 @@
+name: publish
+description: release install script for pj
+
+inputs:
+  gh_token:
+    description: "authentication for gh"
+    required: true
+
+runs:
+  using: docker
+  image: Dockerfile
