@@ -31,7 +31,7 @@ _update_template(){
 }
 
 _build(){
-   cp ./template.sh install.sh
+   cp assets/template.sh install.sh
   _update_template install.sh $(cat <<EOF
 version:$VERSION
 url:$SCRIPT_URL
@@ -39,12 +39,15 @@ EOF
 )
 }
 
-if _commit_is_tagged; then
-  _set_up
-  _build
-  _release
-else
-  echo "commit not tagged, not releasing new document version"
-  exit 0
-fi
+_main(){
+    if _commit_is_tagged; then
+        _set_up
+        _build
+        _release
+    else
+        echo "commit not tagged, not releasing new document version"
+        exit 0
+    fi
+}
 
+_main
