@@ -9,27 +9,27 @@ FRAMEWORK_PATH="$HOME/.local/share/$FRAMEWORK_NAME"
 FRAMEWORK_BINARY="$HOME/.local/bin/$FRAMEWORK_NAME"
 
 _clean(){
+    sleep 0.2
     if [ -d $FRAMEWORK_PATH ]; then
         rm -rf $FRAMEWORK_PATH
     fi
-
     if [ -e $FRAMEWORK_BINARY ]; then
         rm -rf $FRAMEWORK_BINARY
     fi
-
-    sleep 0.5
 }
 
 _clone_repo() {
+    sleep 0.2
     mkdir -p $FRAMEWORK_PATH
 
+    echo
     git clone $FRAMEWORK_URL --branch=$FRAMEWORK_BRANCH $FRAMEWORK_PATH &> /dev/null
 
     return $?
 }
 
 _install_script() {
-
+    sleep 0.2
 cat > $FRAMEWORK_BINARY << EOF
 #!/usr/bin/env sh
 
@@ -48,29 +48,30 @@ EOF
     else
         return 2
     fi
-    sleep 0.2
 }
 
 _main(){
     _banner
-
     # -- clean up --
     _clean &
     pid=$!
     _load "Initializing" $pid
-    wait $pid || _abort
+    wait $pid
+    [ $? -ne 0 ] && _abort
 
     # -- clone repo --
     _clone_repo &
     pid=$!
     _load "Fetching repo" $pid
-    wait $pid || _abort
+    wait $pid
+    [ $? -ne 0 ] && _abort
 
     # -- add command to path --
     _install_script &
     pid=$!
     _load "Installing script" $pid
-    wait $pid || _abort
+    wait $pid
+    [ $? -ne 0 ] && _abort
 
     printf "$(green "[") Installed $FRAMEWORK_NAME $(bold $FRAMEWORK_VERSION) $(green "]")\n"
 }

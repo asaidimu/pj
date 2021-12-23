@@ -23,29 +23,50 @@ EOF
 }
 
 upgrade(){
+  sleep 0.2
+
+  cd $FRAMEWORK_PATH
+  git pull origin &> /dev/null
+
+  return $?
+}
+
+check_update() {
+  sleep 0.2
   repo=$(echo $FRAMEWORK_URL | sed -E "s/.*com.//g")
   json=$(curl -s -H "Accept: application/vnd.github.v3+json" https://api.github.com/repos/$repo/releases/latest)
   next=$(echo $json | jq ".tag_name" | sed "s/\"//g")
 
   if [ $next > $FRAMEWORK_VERSION ]; then
-      cd $FRAMEWORK_PATH
-      git pull origin
-      cat CHANGELOG.md
-      inform "upgrade to version $(green $next) successfull!"
+      return 0
   else
-      inform "nothing to do!"
+      return 1
   fi
-
 }
 
 init(){
   unset -f init
-
   [ "$1" = "help" ] && { help; return 0; }
-  upgrade
-  [ $DEBUG -eq 1 ] && {
-    export DEBUG_MODULE_NAME="upgrade"
-  }
+
+  banner
+
+  check_update &
+  pid=$!
+  _load "Checking for updates" $pid
+  wait $pid
+
+  if [ $? -ne 0 ]; then
+      printf "$(green "[") No updates available. $(green "]")\n"
+  else
+      upgrade &
+      pid=$!
+      _load "Pulling updates" $pid
+      wait $pid
+      [ $? -ne 0 ] && _abort "Upgrade failed !"
+
+      printf "$(green "[") Upgraded to $(bold $FRAMEWORK_VERSION) $(green "]")\n"
+  fi
 }
 
 init "$@"
+

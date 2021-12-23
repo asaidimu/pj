@@ -33,6 +33,13 @@ error(){
   exit $error
 }
 
+abort(){
+    [ -n "$1" ] && message=$1 || message="an unexpected error occured !"
+    [ -n "$2" ] && error=$2 || error=$ERROR
+    printf "$(bold_red "[") $message $(bold_red "]")\n"
+    exit $error
+}
+
 notify(){
   [ $FLAG_SILENT -eq 0 ] || return
 
@@ -44,3 +51,71 @@ notify(){
     error "$failure_msg" "$status"
   }
 }
+
+banner(){
+    duration=0.03
+    printf "\n" && sleep $duration
+    printf "\n" && sleep $duration
+    yellow '          ,ggggggggggg,\n'        && sleep $duration
+    yellow '          dP"""88""""""Y8,\n'     && sleep $duration
+    yellow '          Yb,  88      `8b \n'    && sleep $duration
+    yellow '           `"  88      ,8P gg\n'  && sleep $duration
+    yellow '               88aaaad8P"  ""\n'  && sleep $duration
+    yellow '               88"""""     gg\n'  && sleep $duration
+    yellow '               88          8I\n'  && sleep $duration
+    yellow '               88         ,8I\n'  && sleep $duration
+    yellow '               88       _,d8I\n'  && sleep $duration
+    yellow '               88     888P"888\n' && sleep $duration
+    yellow '                         ,d8I\n'  && sleep $duration
+    yellow "                       ,dP'8I\n"  && sleep $duration
+    yellow '                      ,8"  8I\n'  && sleep $duration
+    yellow '                      I8   8I\n'  && sleep $duration
+    yellow '                      `8, ,8I\n'  && sleep $duration
+    yellow '                       `Y8P\n'    && sleep $duration
+    printf "\n"
+    printf "\n"
+}
+
+clear_line(){
+    printf "\033[1000D" # go to begining of line
+    printf "\033[0K" # clear line
+}
+
+load() {
+    text="$1"
+    pid="$2"
+
+    waiting=1
+    while [ $waiting -eq 1 ]; do
+        bold_green "[ "
+        printf "${text}    "
+        bold_green " ]"
+        sleep 0.3
+        clear_line
+
+        bold_green "[ "
+        printf "${text} .  "
+        bold_green " ]"
+        sleep 0.3
+        clear_line
+
+        bold_green "[ "
+        printf "${text} .. "
+        bold_green " ]"
+        sleep 0.3
+        clear_line
+
+        bold_green "[ "
+        printf "${text} ..."
+        bold_green " ]"
+
+        ps cax | grep -E "\s?$pid" 2>&1 > /dev/null
+        if [ $? -ne 0 ]; then
+            waiting=0
+        fi
+        sleep 0.3
+        clear_line
+    done
+}
+
+
