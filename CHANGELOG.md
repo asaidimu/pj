@@ -1,3 +1,10 @@
+## [1.1.1](https://github.com/augustinesaidimu/pj/compare/v1.1.0...v1.1.1) (2021-12-23)
+
+
+### Bug Fixes
+
+* improved upgrade module ([0ef3ad6](https://github.com/augustinesaidimu/pj/commit/0ef3ad603fb439121e70eaa7d0ecfca3f34ce968))
+
 # [1.1.0](https://github.com/augustinesaidimu/pj/compare/v1.0.8...v1.1.0) (2021-12-22)
 
 
