@@ -1,16 +1,13 @@
 time_stamp(){
-  echo "$(bold_grey `date +%H:%M:%S`)"
+  echo "`date +%H:%M:%S`"
 }
 
 log(){
-  [ $FLAG_SILENT -eq 0 ] || return
-
-  title=$(bold "$FRAMEWORK_NAME @ $FRAMEWORK_MODULE_NAME")
   stamp=$(time_stamp)
 
-  out="$(bold '[')$title $stamp$(bold ']') $@"
+  out="[ $stamp ] $@"
 
-  echo "$out"
+  echo "$out" >> $FRAMEWORK_LOGS
 }
 
 inform(){  echo "$(bold_blue  info)" "${@}"; }
@@ -29,13 +26,17 @@ error(){
   [ -n "$1" ] && message=$1 || message="an unexpected error occured !"
   [ -n "$2" ] && error=$2 || error=$ERROR
 
-  echo "$(bold_red error)" "${message}";
+
+  log "ERROR $error: $message"
+  echo "$(bold_red '[')" "$(bold_red 'ERROR')" "$(bold_red ']')" "${message}"
   exit $error
 }
 
 abort(){
     [ -n "$1" ] && message=$1 || message="an unexpected error occured !"
     [ -n "$2" ] && error=$2 || error=$ERROR
+
+    log "ABORTED"
     printf "$(bold_red "[") $message $(bold_red "]")\n"
     exit $error
 }
@@ -53,27 +54,33 @@ notify(){
 }
 
 banner(){
-    duration=0.03
+    duration=0.02
     printf "\n" && sleep $duration
     printf "\n" && sleep $duration
-    yellow '          ,ggggggggggg,\n'        && sleep $duration
-    yellow '          dP"""88""""""Y8,\n'     && sleep $duration
-    yellow '          Yb,  88      `8b \n'    && sleep $duration
-    yellow '           `"  88      ,8P gg\n'  && sleep $duration
-    yellow '               88aaaad8P"  ""\n'  && sleep $duration
-    yellow '               88"""""     gg\n'  && sleep $duration
-    yellow '               88          8I\n'  && sleep $duration
-    yellow '               88         ,8I\n'  && sleep $duration
-    yellow '               88       _,d8I\n'  && sleep $duration
-    yellow '               88     888P"888\n' && sleep $duration
-    yellow '                         ,d8I\n'  && sleep $duration
-    yellow "                       ,dP'8I\n"  && sleep $duration
-    yellow '                      ,8"  8I\n'  && sleep $duration
-    yellow '                      I8   8I\n'  && sleep $duration
-    yellow '                      `8, ,8I\n'  && sleep $duration
-    yellow '                       `Y8P\n'    && sleep $duration
+    bold_yellow '          ,ggggggggggg,\n'        && sleep $duration
+    bold_yellow '          dP"""88""""""Y8,\n'     && sleep $duration
+    bold_yellow '          Yb,  88      `8b \n'    && sleep $duration
+    bold_yellow '           `"  88      ,8P gg\n'  && sleep $duration
+    bold_yellow '               88aaaad8P"  ""\n'  && sleep $duration
+    bold_yellow '               88"""""     gg\n'  && sleep $duration
+    bold_yellow '               88          8I\n'  && sleep $duration
+    bold_yellow '               88         ,8I\n'  && sleep $duration
+    bold_yellow '               88       _,d8I\n'  && sleep $duration
+    bold_yellow '               88     888P"888\n' && sleep $duration
+    bold_yellow '                         ,d8I\n'  && sleep $duration
+    bold_yellow "                       ,dP'8I\n"  && sleep $duration
+    bold_yellow '                      ,8"  8I\n'  && sleep $duration
+    bold_yellow '                      I8   8I\n'  && sleep $duration
+    bold_yellow '                      `8, ,8I\n'  && sleep $duration
+    bold_yellow '                       `Y8P\n'    && sleep $duration
     printf "\n"
     printf "\n"
+}
+
+label() {
+    bold_green "[ "
+    printf "$@"
+    bold_green " ]\n"
 }
 
 clear_line(){
@@ -118,4 +125,12 @@ load() {
     done
 }
 
+show_version(){
+    banner
+    sleep 0.2 &
+    pid=$!
+    load "Checking Version" $pid
+    wait $pid
+    label "Using version $(echo $FRAMEWORK_VERSION | sed -E 's/v//g')"
+}
 

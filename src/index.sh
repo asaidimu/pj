@@ -13,38 +13,31 @@ EOF_ABOUT
 )
 # -----------------------------------------------------------------------------
 
-# -- get_route() --
-get_route(){
-  unset -f get_route
-
-  route_path=""
-  [ -z "$1" ] &&  {
-    route_path="$DEFAULT_FRAMEWORK_ROUTE"
-  } || {
-    route_path="$FRAMEWORK_ROUTE/$1"
-  }
-
-  echo "$route_path/index.sh"
-}
-
 # -- start() --
 start(){
   unset -f start
 
-  route=$(get_route "$1")
+  if [ -z "$1" ]; then
+      show_version
+      exit
+  fi
+
+  route="$FRAMEWORK_ROUTE/$1/index.sh"
 
   [ -e $route ] || {
-      error_msg="command $1 not found! see $FRAMEWORK_NAME help for usage"
-      error $error_msg $ERROR_ILLEGAL_OP
+      error_msg="Command $(bold_yellow $1) not found! See $FRAMEWORK_NAME help for usage"
+      error "$error_msg" $ERROR_ILLEGAL_OP
   }
 
-  [ -z "$1" ] || shift
+  log "Executing module [ ${1} ]"
 
+  [ -z "$1" ] || shift
   . $route
 }
 
 remove_flags(){
   unset -f remove_flags
+  log "checking flags"
 
   arguments=""
   for arg in $@; do
@@ -60,14 +53,10 @@ remove_flags(){
 # -- init --
 init(){
   unset -f init
-
+  log "START"
+  trap 'log "EXIT"' EXIT
   remove_flags $@
   start $FRAMEWORK_ARGUMENTS
-
-  #DEBUG: Apr 11, 2021
-  #[ $DEBUG -eq 1 ] && {
-    #export DEBUG_MODULE_NAME="init"
-  #}
 }
 
 init "$@"

@@ -41,7 +41,9 @@ parse_args(){
   }
 
 
-  [ "$1" = "help" ] && { help; return 0; }
+  if [ "$1" = "help" ]; then
+       help && return 2;
+  fi
 
   [ "$1" = "." -o "$1" = ".." ] && {
     error "action cannot be perfomed" $ERROR_ILLEGAL_OP
@@ -57,8 +59,7 @@ parse_args(){
 
 init(){
   export FRAMEWORK_MODULE_NAME="archive"
-  parse_args $@
-  archive_project
+  parse_args $@ && archive_project
 }
 
 init "$@"

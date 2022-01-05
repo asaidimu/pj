@@ -26,7 +26,7 @@ parse_args(){
     error "no input provided!" $ERROR_INVALID_OPTIONS
   }
 
-  [ "$1" = "help" ] && { help; return 0; }
+  [ "$1" = "help" ] && { help; return 2; }
 
   [ "$1" = "." -o "$1" = ".." ] && {
     error "action cannot be perfomed" $ERROR_ILLEGAL_OP
@@ -58,8 +58,7 @@ rm_project(){
 
 init(){
   export FRAMEWORK_MODULE_NAME="delete"
-  parse_args $@
-  rm_project
+  parse_args $@ && rm_project
 }
 
 init "$@"

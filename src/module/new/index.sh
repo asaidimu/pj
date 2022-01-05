@@ -33,7 +33,7 @@ parse_args(){
     error "no input provided!" $ERROR_INVALID_OPTIONS
   }
 
-  [ "$1" = "help" ] && { help; return 0; }
+  [ "$1" = "help" ] && { help; return 2; }
 
   [ -e "$CUSTOM_PLUGINS_PATH/$1" ] && plugin="$CUSTOM_PLUGINS_PATH/$1" || plugin="$PLUGINS_PATH/$1";
 
@@ -57,17 +57,13 @@ parse_args(){
   [ -d $PROJECT_PATH ] && {
     error "project $2 found under $PROJECTS_PATH" $ERR0R_PROJECT_EXISTS
   }
+
 }
 
 init(){
   unset -f init
 
-  parse_args $@
-  . $PROJECT_PLUGIN
-
-  [ $DEBUG -eq 1 ] && {
-    export DEBUG_MODULE_NAME="new"
-  }
+  parse_args $@ && . $PROJECT_PLUGIN
 }
 
 init "$@"

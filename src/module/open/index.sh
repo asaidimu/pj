@@ -25,7 +25,7 @@ parse_args(){
     error "no input provided!" $ERROR_INVALID_OPTIONS
   }
 
-  [ "$1" = "help" ] && { help; return 0; }
+  [ "$1" = "help" ] && { help; return 2; }
 
   [ "$1" = "." -o "$1" = ".." ] && {
     error "action cannot be perfomed" $ERROR_ILLEGAL_OP
@@ -54,12 +54,7 @@ init(){
   unset -f init
   export  FRAMEWORK_MODULE_NAME="open"
 
-  parse_args $@
-  open_project
-
-  [ $DEBUG -eq 1 ] && {
-    export DEBUG_MODULE_NAME="open"
-  }
+  parse_args $@ && open_project
 }
 
 init "$@"

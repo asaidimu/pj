@@ -26,7 +26,7 @@ init(){
   unset -f init
 
   parse_args $@
-
+  printf "Hello, World!\n"
 }
 
 init "$@"
