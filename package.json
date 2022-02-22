@@ -2,7 +2,7 @@
   "private": true,
   "license": "MIT",
   "scripts": {
-      "ci": "yarn install && yarn upgrade"
+    "ci": "yarn install && yarn upgrade"
   },
   "devDependencies": {
     "@semantic-release/changelog": "^6.0.1",
@@ -28,12 +28,12 @@
       [
         "@semantic-release/git",
         {
-            "assets": [
-                "CHANGELOG.md",
-                "package.json",
-                "yarn.lock"
-            ],
-            "message": "chore(release): Release v${nextRelease.version}\n\n${nextRelease.notes}"
+          "assets": [
+            "CHANGELOG.md",
+            "package.json",
+            "yarn.lock"
+          ],
+          "message": "chore(release): Release v${nextRelease.version}\n\n${nextRelease.notes}"
         }
       ]
     ]

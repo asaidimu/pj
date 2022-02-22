@@ -1,3 +1,10 @@
+## [1.1.3](https://github.com/asaidimu/pj/compare/v1.1.2...v1.1.3) (2022-02-22)
+
+
+### Bug Fixes
+
+* **new module:** fix return values ([205ab0f](https://github.com/asaidimu/pj/commit/205ab0f1fe23d9e9668e0a51cae67b585460799c))
+
 ## [1.1.2](https://github.com/augustinesaidimu/pj/compare/v1.1.1...v1.1.2) (2022-01-05)
 
 
