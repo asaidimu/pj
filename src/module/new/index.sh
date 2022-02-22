@@ -52,18 +52,19 @@ parse_args(){
     setup "$project"
   }
 
-  [ $FLAG_OVERWRITE -eq 1 ] && return
+  [ $FLAG_OVERWRITE -eq 1 ] && return 0
 
   [ -d $PROJECT_PATH ] && {
     error "project $2 found under $PROJECTS_PATH" $ERR0R_PROJECT_EXISTS
   }
 
+  return 0
 }
 
 init(){
   unset -f init
 
-  parse_args $@ && . $PROJECT_PLUGIN
+  parse_args $@ && . $PROJECT_PLUGIN  || exit 0
 }
 
 init "$@"
