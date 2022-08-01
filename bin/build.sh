@@ -1,11 +1,8 @@
 #!/usr/bin/env sh
 
-origin=$(git remote get-url origin | sed -E "s|^.*\.com:(.*)\..*$|\1|g")
-GITHUB_REPOSITORY=${GITHUB_REPOSITORY:-"${origin}"}
-
 _set_up(){
   export VERSION=$(git describe --exact-match --abbrev=0 --tags 2>/dev/null)
-  export SCRIPT_URL="https://github.com/${GITHUB_REPOSITORY}"
+  export SCRIPT_URL="https://github.com/asaidimu/pj"
   export SCRIPT="install.sh"
 }
 
