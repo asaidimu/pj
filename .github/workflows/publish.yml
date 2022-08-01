@@ -20,10 +20,6 @@ jobs:
               with:
                   fetch-depth: 0
 
-            - name: build
-              run: |
-                  bin/build.sh
-
             - name: release
               run: |
                   bin/publish.sh
