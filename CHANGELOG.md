@@ -1,3 +1,11 @@
+## [1.2.2](https://github.com/asaidimu/pj/compare/v1.2.1...v1.2.2) (2022-08-01)
+
+
+### Bug Fixes
+
+* create release tag ([4f1fe6e](https://github.com/asaidimu/pj/commit/4f1fe6ece689ce974ef18640f0ae9bdb304df8c8))
+* fix publish workflow ([bda4ff6](https://github.com/asaidimu/pj/commit/bda4ff63eed32afd6b394ed725ab79984b9f854a))
+
 ## [1.2.1](https://github.com/asaidimu/pj/compare/v1.2.0...v1.2.1) (2022-08-01)
 
 
