@@ -1,0 +1,134 @@
+#!/usr/bin/env sh
+repl() { printf "$1"'%.s' $(eval "echo {1.."$(($2))"}"); }
+
+_label(){
+  color="$1"
+  level="$2"
+  size=$(printf "$level" | wc -m)
+  size=$((6 - size))
+  printf "$($color "$(repl " " $size)${level} │") "
+}
+
+_log(){
+  _label bold_green "LOG"
+  echo "${@}"
+}
+_alert() {
+  _label bold_yellow "ALERT"
+  echo "${@}"
+}
+_error(){
+  _label bold_red "ERROR"
+  echo "${@}"
+}
+_trace(){
+  _label bold_cyan "TRACE"
+  echo "${@}"
+}
+_debug(){
+  _label bold_blue "DEBUG"
+  echo "${@}"
+}
+
+help(){
+cat <<EOF
+
+
+  $(banner)
+$(bold ABOUT)
+    Pretty print shell logs
+
+$(bold USAGE)
+    ${SCRIPT_NAME} <option> <message>
+
+$(bold options)
+    -h  --help         show help
+    -l  --log          show  log message
+    -a  --alert        show  alert message
+    -e  --error        show  error message
+    -t  --trace        show  trace message
+    -d  --debug        show  debug message
+EOF
+}
+
+
+
+main(){
+  opt="$1"
+  [ "$#" -gt 0 ] && shift
+  case "$opt" in
+    -h | --help)
+      help
+    ;;
+    -l | --log)
+      _log "$@"
+      ;;
+    -a | --alert)
+      _alert "$@"
+      ;;
+    -e | --error)
+      _error "$@"
+      ;;
+    -t | --trace)
+      _trace "$@"
+      ;;
+    -d | --debug)
+      _debug "$@"
+      ;;
+    * )
+      help
+      ;;
+  esac
+}
+
+bold(){
+  printf "\033[1;37;48m${@}\033[0m";
+}
+bold_blue(){
+  printf "\033[1;34;48m${@}\033[0m";
+}
+bold_cyan(){
+  printf "\033[1;36;48m${@}\033[0m";
+}
+bold_green(){
+  printf "\033[1;32;48m${@}\033[0m";
+}
+bold_grey(){
+  printf "\033[1;30;48m${@}\033[0m";
+}
+bold_red(){
+  printf "\033[1;31;48m${@}\033[0m";
+}
+bold_yellow(){
+  printf "\033[1;33;48m${@}\033[0m";
+}
+blue(){
+  printf "\033[0;34;48m${@}\033[0m";
+}
+cyan(){
+  printf "\033[0;36;48m${@}\033[0m";
+}
+green(){
+  printf "\033[0;32;48m${@}\033[0m";
+}
+grey(){
+  printf "\033[0;37;48m${@}\033[0m";
+}
+red(){
+  printf "\033[0;31;48m${@}\033[0m";
+}
+yellow(){
+  printf "\033[0;33;48m${@}\033[0m";
+}
+header(){
+  printf "\033[35m${@}\033[0m";
+}
+underline(){
+  printf "\033[4m${@}\033[0m";
+}
+banner(){
+  echo ${SCRIPT_NAME} | sed -E "s/^(.)(.*)/\U\1\L\2/g" | figlet  -f NScript | sed -E "/^\s*$/d"
+}
+
+export SCRIPT_NAME=$(basename $0)
+main $@

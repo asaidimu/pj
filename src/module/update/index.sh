@@ -24,22 +24,6 @@ $(bold EXAMPLE)
 EOF
 }
 
-upgrade(){
-  sleep 0.2
-  cd $FRAMEWORK_PATH
-
-  node >> $FRAMEWORK_LOGS - <<EOF
-const { exec } = require("child_process")
-exec("git pull origin main", (error, stout, stderr) => {
-if(error)
-    console.log(stderr)
-    process.exit(2)
-})
-EOF
-
-return $?
-}
-
 check_update() {
   sleep 0.3
   repo=$(echo $FRAMEWORK_URL | sed -E "s/.*com.//g")
@@ -80,10 +64,7 @@ init(){
   else
       next=$(cat /tmp/pj_upgrade) && rm /tmp/pj_upgrade
 
-      upgrade "$logs" &
-      pid=$!
-      load "Pulling updates" $pid
-      wait $pid
+      sh <(curl -fsSL $FRAMEWORK_URL/releases/download/${version}/install.sh)
 
     if [ $? -ne 0 ]; then
         log "Could not update framework."
@@ -96,4 +77,3 @@ init(){
 }
 
 init "$@"
-

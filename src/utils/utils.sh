@@ -33,10 +33,9 @@ extract_file(){
   [ -z "$1" ] && { error "no template specified!" $ERROR_INVALID_OPTIONS; }
   [ -z "$2" ] && { error "template output not specified!" $ERROR_INVALID_OPTIONS; }
 
-  template_file="$1"
-  output_file="$2"
-
-  tar -Jxvf $TEMPLATE_PATH "$template_file" -O >> $output_file 2>> /dev/null
+  template="$ASSET_PATH/$1"
+  output="$2"
+  [ -e "$template" ] && cp "$template" "$output"
 }
 
 question(){
@@ -65,13 +64,6 @@ is_flag(){
   [  $? -eq 0 ] && return 0 || return 1
 }
 
-plug_list(){
-  path="$1"
-  for recipe in `ls $path`; do
-    summary=$(cat $path/$recipe | grep "DESCRIPTION" | sed -E "s/^.*:\s//g")
-   echo "$recipe:$summary" | awk -F':' '{printf "    %-10s --   %s\n", $1, $2}'
-  done
-}
 
 tabular(){
    echo "$1:$2" | awk -F':' '{printf "    %-10s --   %s\n", $1, $2}'

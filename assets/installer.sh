@@ -18,14 +18,17 @@ _clean(){
     fi
 }
 
-_clone_repo() {
-    sleep 0.2
+_extract() {
+    TMPFILE="$(mktemp -t --suffix=.SUFFIX installer_sh.XXXXXX)"
+    trap "rm -f '$TMPFILETMPFILE'" 0               # EXIT
+    trap "rm -f '$TMPFILETMPFILE'; exit 1" 2       # INT
+    trap "rm -f '$TMPFILETMPFILE'; exit 1" 1 15    # HUP TERM
+
+    echo "$SOURCE" | base64 --decode > $TMPFILE
     mkdir -p $FRAMEWORK_PATH
-
-    echo
-    git clone $FRAMEWORK_URL --branch=$FRAMEWORK_BRANCH $FRAMEWORK_PATH &> /dev/null
-
-    return $?
+    cd $FRAMEWORK_PATH
+    tar -Jxf $TMPFILE
+    rm -rf $TMPFILE
 }
 
 _install_script() {
@@ -59,8 +62,8 @@ _main(){
     wait $pid
     [ $? -ne 0 ] && _abort
 
-    # -- clone repo --
-    _clone_repo &
+    # -- extract --
+    _extract &
     pid=$!
     _load "Fetching repo" $pid
     wait $pid
@@ -176,4 +179,3 @@ _banner(){
 
 # ---------------------------------------------------------------------------- #
 
-_main $@

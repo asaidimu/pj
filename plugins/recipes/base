@@ -1,0 +1,53 @@
+# -- about ---=============================================================== #
+# NAME        : base-project
+# VERSION     : 0.1
+# DESCRIPTION : a base project folder with git started and a tmux env
+# REQUIRES    :
+
+# AUTHOR      : Lolokile Saidimu
+# LICENSE     : MIT
+# =========================================================================== #
+
+# -- add directories --
+inform "Setting up $(green ${project})."
+
+[ -d $PROJECT_PATH ] || {
+  mkdir -p $PROJECT_PATH
+  notify "Created project directory" "could not add project directory"
+}
+
+  # -- initialise git repo --
+[ -d "$PROJECT_PATH/.git" ] || {
+  # create git repo
+  git init $PROJECT_PATH > /dev/null
+  notify "Created git repo" "could not create git repo"
+
+  # add .gitignore
+  ignorefile="$PROJECT_PATH/.gitignore"
+
+  extract_file "template/gitignore" "$PROJECT_PATH/.gitignore"
+  notify "Added gitignore" "could not add gitignore"
+}
+
+[ -e "$PROJECT_PATH/README.md" ] || {
+  extract_file "template/README.md" "$PROJECT_PATH/README.md"
+  echo "# ${project}" > "$PROJECT_PATH/README.md"
+  notify "Added README"
+}
+
+[ -e "$PROJECT_PATH/LICENSE.md" ] || {
+  extract_file "template/LICENSE.md" "$PROJECT_PATH/LICENSE.md"
+  notify "Added LICENSE"
+}
+
+# -- add sessionizer start up file --
+config="${PROJECT_PATH}/.project"
+
+[ -e "${config}" ] || {
+  extract_file "template/project" "${config}"
+  chmod +x "${config}"
+  success "Created project config"
+  success $(green "Happy Coding!")
+}
+
+# vim:set et sw=2 ts=4 tw=80 ft=sh:

@@ -2,6 +2,17 @@ time_stamp(){
   echo "`date +%H:%M:%S`"
 }
 
+
+repl() { printf "$1"'%.s' $(eval "echo {1.."$(($2))"}"); }
+
+label(){
+  color="$1"
+  level=$(echo "$2" | sed -E "s/^(.*)/\U\1/g")
+  size=$(printf "$level" | wc -m)
+  size=$((8 - size))
+  printf "$($color "$(repl " " $size)${level} │") "
+}
+
 log(){
   stamp=$(time_stamp)
 
@@ -10,14 +21,24 @@ log(){
   echo "$out" >> $FRAMEWORK_LOGS
 }
 
-inform(){  echo "$(bold_blue  info)" "${@}"; }
-success(){ echo "$(bold_green  success)" "${@}";}
-warn(){    echo "$(bold_yellow  warning)" "${@}";}
+inform(){
+  label bold_blue "INFO"
+  echo "${@}";
+}
+success(){
+  label bold_green "success"
+  echo "${@}";
+}
+warn(){
+  label bold_yellow "warning"
+  echo "${@}";
+}
 
 debug(){
   silent=$FLAG_SILENT
   export FLAG_SILENT=0
-  log "$(bold_blue   debug)" "${@}";
+  label bold_blue "debug"
+  echo "${@}";
   export FLAG_SILENT=$silent;
 }
 
@@ -26,9 +47,8 @@ error(){
   [ -n "$1" ] && message=$1 || message="an unexpected error occured !"
   [ -n "$2" ] && error=$2 || error=$ERROR
 
-
-  log "ERROR $error: $message"
-  echo "$(bold_red '[')" "$(bold_red 'ERROR')" "$(bold_red ']')" "${message}"
+  label bold_red "error"
+  echo "${message}"
   exit $error
 }
 
@@ -75,12 +95,6 @@ banner(){
     bold_yellow '                       `Y8P\n'    && sleep $duration
     printf "\n"
     printf "\n"
-}
-
-label() {
-    bold_green "[ "
-    printf "$@"
-    bold_green " ]\n"
 }
 
 clear_line(){
@@ -131,6 +145,8 @@ show_version(){
     pid=$!
     load "Checking Version" $pid
     wait $pid
-    label "Using version $(echo $FRAMEWORK_VERSION | sed -E 's/v//g')"
+    bold_green "[ "
+    "Using version $(echo $FRAMEWORK_VERSION | sed -E 's/v//g')"
+    bold_green " ]\n"
 }
 

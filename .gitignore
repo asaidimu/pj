@@ -244,3 +244,5 @@ yarn-error.log
 public/bs-config.js
 build
 install.sh
+.project
+.session.vim

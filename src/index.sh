@@ -16,20 +16,20 @@ EOF_ABOUT
 # -- start() --
 start(){
   unset -f start
+  cmd="$1"
 
-  if [ -z "$1" ]; then
-      show_version
-      exit
+  if [ -z "$cmd" ]; then
+      cmd="open"
   fi
 
-  route="$FRAMEWORK_ROUTE/$1/index.sh"
+  route="$FRAMEWORK_ROUTE/${cmd}/index.sh"
 
   [ -e $route ] || {
-      error_msg="Command $(bold_yellow $1) not found! See $FRAMEWORK_NAME help for usage"
+      error_msg="Command $(bold_yellow ${cmd}) not found! See $FRAMEWORK_NAME help for usage"
       error "$error_msg" $ERROR_ILLEGAL_OP
   }
 
-  log "Executing module [ ${1} ]"
+  log "Executing module [ ${cmd} ]"
 
   [ -z "$1" ] || shift
   . $route
