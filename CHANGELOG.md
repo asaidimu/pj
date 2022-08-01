@@ -1,3 +1,10 @@
+## [1.2.6](https://github.com/asaidimu/pj/compare/v1.2.5...v1.2.6) (2022-08-01)
+
+
+### Bug Fixes
+
+* my stupidity ([eec3308](https://github.com/asaidimu/pj/commit/eec33086a6f4bf552edd80ad987df09271703840))
+
 ## [1.2.5](https://github.com/asaidimu/pj/compare/v1.2.4...v1.2.5) (2022-08-01)
 
 
