@@ -1,3 +1,10 @@
+## [1.2.5](https://github.com/asaidimu/pj/compare/v1.2.4...v1.2.5) (2022-08-01)
+
+
+### Bug Fixes
+
+* fixed repo url ([ba02c26](https://github.com/asaidimu/pj/commit/ba02c26c897ec5e6f17d671a511a30ec61639cfd))
+
 ## [1.2.4](https://github.com/asaidimu/pj/compare/v1.2.3...v1.2.4) (2022-08-01)
 
 
