@@ -1,3 +1,10 @@
+## [1.2.4](https://github.com/asaidimu/pj/compare/v1.2.3...v1.2.4) (2022-08-01)
+
+
+### Bug Fixes
+
+* update publish workflow ([78ed6f0](https://github.com/asaidimu/pj/commit/78ed6f0e4def94dc53e25eb1b1be78c2a8ba03fc))
+
 ## [1.2.3](https://github.com/asaidimu/pj/compare/v1.2.2...v1.2.3) (2022-08-01)
 
 
