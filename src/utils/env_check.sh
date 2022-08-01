@@ -25,12 +25,19 @@
 [ -z $FRAMEWORK_SOURCE_PATH ] && error '$FRAMEWORK_SOURCE_PATH is not set!' 1
 
 [ -z $PLUGINS_PATH ] && error '$PLUGINS_PATH is not set!' 1
+[ -z $RECIPES_PATH ] && error '$RECIPES_PATH is not set!' 1
 [ -z $CUSTOM_PLUGINS_PATH ] && error '$CUSTOM_PLUGINS_PATH is not set!' 1
+[ -z $CUSTOM_RECIPES_PATH ] && error '$CUSTOM_RECIPES_PATH is not set!' 1
 [ -z $PROJECTS_DATA ] && error '$PROJECTS_DATA is not set!' 1
 [ -z $PROJECTS_PATH ] && error '$PROJECTS_PATH is not set!' 1
-[ -z $TEMPLATE_PATH ] && error '$TEMPLATE_PATH is not set!' 1
+[ -z $PROJECTS_LIST ] && error '$PROJECTS_LIST is not set!' 1
 [ -z $UTILITIES_PATH ] && error '$UTILITIES_PATH is not set!' 1
 [ -z $ARCHIVE_PATH ] && error '$ARCHIVE_PATH is not set!' 1
 [ -z $ASSET_PATH ] && error '$ASSET_PATH is not set!' 1
-[ -d $FRAMEWORK_TMP ] || mkdir "$FRAMEWORK_TMP"
+[ -z $PROJECTS_LIST_GENERATOR ] && error '$PROJECTS_LIST_GENERATOR is not defined!'
 [ -d $PROJECTS_PATH ] || error "$PROJECTS_PATH does not exist !"
+
+[ -d $FRAMEWORK_CONFIG_DIR ] || mkdir -p "$FRAMEWORK_CONFIG_DIR"
+[ -d $FRAMEWORK_TMP ] || mkdir "$FRAMEWORK_TMP"
+[ -d $FRAMEWORK_DATA ] || mkdir -p "$FRAMEWORK_DATA"
+[ -e $PROJECTS_LIST_GENERATOR ] || error "$PROJECT_LIST_GENERATOR does not exist !"

@@ -7,9 +7,11 @@ on:
 
 jobs:
   release:
-    name: Publish Documentation
+    name: Publish Release
     runs-on: ubuntu-latest
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     steps:
       - name: Checkout
@@ -18,7 +20,7 @@ jobs:
           fetch-depth: 0
 
       - name: Publish
-        uses: ./.github/actions/publish
-        id: publish
-        with:
-          gh_token: ${{ secrets.GITHUB_TOKEN }}
+         run: |
+           ./bin/build.sh
+           ./bin/publish.sh
+

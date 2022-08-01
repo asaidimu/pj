@@ -1,0 +1,15 @@
+TMPFILE="$(mktemp -t --suffix=.SUFFIX generator.XXXXXX)"
+trap "rm -f '$TMPFILE'" 0               # EXIT
+trap "rm -f '$TMPFILE'; exit 1" 2       # INT
+trap "rm -f '$TMPFILE'; exit 1" 1 15    # HUP TERM
+
+projects=`find "$PROJECTS_PATH" -maxdepth 4 -name ".pj" -prune -o -name ".project" -print | xargs | sed -E "s/.\.project//g;s/\s/:/g"`
+repos=`find "$PROJECTS_PATH" -maxdepth 4 -name ".pj" -prune -o -name ".git" -print | xargs | sed -E "s/.\.git//g;s/\s/:/g"`
+
+SESSION_TARGETS="$projects:$repos"
+
+printf "$SESSION_TARGETS\n" | sed "s/:/\n/g" | uniq >> $TMPFILE
+
+: > $PROJECTS_LIST
+cat $TMPFILE | sort | uniq >> $PROJECTS_LIST
+# vim:set ft=sh:

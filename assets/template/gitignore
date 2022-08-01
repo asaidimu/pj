@@ -133,5 +133,7 @@ docs/_book
 test/
 
 # -- PJ --
-.pj/*
+.pj
+.project
+.session.vim
 
