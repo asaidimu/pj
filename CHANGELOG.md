@@ -1,3 +1,10 @@
+# [1.2.0](https://github.com/asaidimu/pj/compare/v1.1.3...v1.2.0) (2022-08-01)
+
+
+### Features
+
+* refactor ([efb5b7e](https://github.com/asaidimu/pj/commit/efb5b7e863d8f415d9a2025ecd253a501d18a9c6))
+
 ## [1.1.3](https://github.com/asaidimu/pj/compare/v1.1.2...v1.1.3) (2022-02-22)
 
 
