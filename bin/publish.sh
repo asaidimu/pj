@@ -15,7 +15,6 @@ _commit_is_tagged () {
 }
 
 _release(){
-  export GITHUB_TOKEN="${INPUT_GH_TOKEN}"
   gh release create "${VERSION}" --title "${VERSION}" "${SCRIPT}"
 }
 
