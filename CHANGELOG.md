@@ -1,3 +1,10 @@
+## [1.3.1](https://github.com/asaidimu/pj/compare/v1.3.0...v1.3.1) (2022-08-05)
+
+
+### Bug Fixes
+
+* fixed buggy update script ([55954ed](https://github.com/asaidimu/pj/commit/55954edb7e013ba9019292d08b444ebeb91bb6c5))
+
 # [1.3.0](https://github.com/asaidimu/pj/compare/v1.2.6...v1.3.0) (2022-08-05)
 
 
