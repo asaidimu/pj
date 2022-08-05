@@ -52,27 +52,28 @@ init(){
 
   check_update &
   pid=$!
-  load "Checking for updates" $pid
+  load "Checking for updates" "Network request complete" $pid
   wait $pid
-  version=$?
+  version="v1.2.6"
 
   if [ $version -eq 0 ]; then
-      printf "$(bold_green "[") Already using the latest and greatest $(bold_green "]")\n"
+    success "Already at latest version"
   elif [ $version -eq 1 ]; then
-       log "Could not get latest version."
+       warn "Could not get latest version information."
        abort "${ERROR_MSG}"
   else
-      next=$(cat /tmp/pj_upgrade) && rm /tmp/pj_upgrade
-
-      sh <(curl -fsSL $FRAMEWORK_URL/releases/download/${version}/install.sh)
+    next=$(cat /tmp/pj_upgrade) && rm /tmp/pj_upgrade
+    sh <(curl -fsSL $FRAMEWORK_URL/releases/download/${version}/install.sh) > /dev/null &
+    pid=$!
+    load "Installing updates" "Updates installed" $pid
+    wait $pid
 
     if [ $? -ne 0 ]; then
-        log "Could not update framework."
+        warn "Could not update framework."
         abort "${ERROR_MSG}"
     fi
-
       sed -E "s/(VERSION=.)${FRAMEWORK_VERSION}(.)/\1${next}\2/g" -i `which pj`
-      printf "$(bold_green "[") Upgraded to $(bold $next) $(bold_green "]")\n"
+      success "Upgraded to $(bold $next)"
   fi
 }
 

@@ -2,6 +2,8 @@
   "private": true,
   "license": "MIT",
   "scripts": {
+    "build": "./bin/build.sh",
+    "publish": "./bin/publish.sh",
     "ci": "yarn install && yarn upgrade"
   },
   "devDependencies": {

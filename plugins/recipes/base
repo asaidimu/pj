@@ -44,7 +44,7 @@ inform "Setting up $(green ${project})."
 config="${PROJECT_PATH}/.project"
 
 [ -e "${config}" ] || {
-  extract_file "template/project" "${config}"
+  extract_file "template/project-config.sh" "${config}"
   chmod +x "${config}"
   success "Created project config"
   success $(green "Happy Coding!")
