@@ -65,9 +65,7 @@ init(){
     next=$(cat /tmp/pj_upgrade) && rm /tmp/pj_upgrade
 
     script=$(mktemp "/tmp/XXX.sh")
-    echo "$FRAMEWORK_URL/releases/download/${next}/install.sh $script"
-    curl -fsL "$FRAMEWORK_URL/releases/download/${next}/install.sh" --output
-    "$script" >/dev/null &
+    curl -fsL "$FRAMEWORK_URL/releases/download/${next}/install.sh" --output "$script" >/dev/null &
     pid=$!
     load "Downloading updates" $pid
     wait $pid
