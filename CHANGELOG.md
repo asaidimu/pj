@@ -1,3 +1,10 @@
+## [1.3.2](https://github.com/asaidimu/pj/compare/v1.3.1...v1.3.2) (2022-08-05)
+
+
+### Bug Fixes
+
+* fix buggy update module ([ae44d27](https://github.com/asaidimu/pj/commit/ae44d273a02a76fa0c56309318e4efd5d54b4867))
+
 ## [1.3.1](https://github.com/asaidimu/pj/compare/v1.3.0...v1.3.1) (2022-08-05)
 
 
