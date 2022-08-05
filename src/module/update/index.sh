@@ -54,24 +54,39 @@ init(){
   pid=$!
   load "Checking for updates" "Network request complete" $pid
   wait $pid
-  version="v1.2.6"
+  version=$?
 
   if [ $version -eq 0 ]; then
     success "Already at latest version"
   elif [ $version -eq 1 ]; then
        warn "Could not get latest version information."
-       abort "${ERROR_MSG}"
+       error "${ERROR_MSG}"
   else
     next=$(cat /tmp/pj_upgrade) && rm /tmp/pj_upgrade
-    sh <(curl -fsSL $FRAMEWORK_URL/releases/download/${version}/install.sh) > /dev/null &
+
+    script=$(mktemp "/tmp/XXX.sh")
+    echo "$FRAMEWORK_URL/releases/download/${next}/install.sh $script"
+    curl -fsL "$FRAMEWORK_URL/releases/download/${next}/install.sh" --output
+    "$script" >/dev/null &
     pid=$!
-    load "Installing updates" "Updates installed" $pid
+    load "Downloading updates" $pid
     wait $pid
+
+    [ -e "$script" -a -s "$script" ] && {
+      sh "$script" > /dev/null &
+      pid=$!
+      load "Installing updates" $pid
+      wait $pid
+    } || {
+        warn "Could not update framework."
+        error "${ERROR_MSG}"
+    }
 
     if [ $? -ne 0 ]; then
         warn "Could not update framework."
-        abort "${ERROR_MSG}"
+        error "${ERROR_MSG}"
     fi
+
       sed -E "s/(VERSION=.)${FRAMEWORK_VERSION}(.)/\1${next}\2/g" -i `which pj`
       success "Upgraded to $(bold $next)"
   fi

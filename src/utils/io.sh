@@ -112,6 +112,11 @@ load() {
     msg="$2"
     pid="$3"
 
+    [ -z "$pid" ] &&  {
+      pid="$msg"
+      msg=""
+    }
+
     text="$(trace "${text}")"
     a="${text}    "
     b="${text} .  "
@@ -141,7 +146,8 @@ load() {
         sleep 0.3
         clear_line
     done
-    inform "${msg}"
+
+    [ -z "$msg" ] && clear_line || inform "${msg}"
 }
 
 show_version(){

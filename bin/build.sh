@@ -16,8 +16,8 @@ _update_template(){
 }
 
 _build(){
+   tar --exclude="./package.json" --exclude="./yarn.lock" --exclude="./install.sh" -Jcf pj.tar.xz ./*
    cp assets/installer.sh install.sh
-   tar --exclude="./package.json" --exclude="./yarn.lock" -Jcf pj.tar.xz ./*
    _update_template "./install.sh" "version:$VERSION" "url:$SCRIPT_URL"
    echo "export SOURCE=\$(cat <<EOF" >> "./install.sh"
     base64 "./pj.tar.xz" >> "./install.sh"
