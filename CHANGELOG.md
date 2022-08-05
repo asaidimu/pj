@@ -1,3 +1,10 @@
+# [1.3.0](https://github.com/asaidimu/pj/compare/v1.2.6...v1.3.0) (2022-08-05)
+
+
+### Features
+
+* changed logging format ([ca79324](https://github.com/asaidimu/pj/commit/ca79324cc463e1a31318aec9f1bb2343401b0ee0))
+
 ## [1.2.6](https://github.com/asaidimu/pj/compare/v1.2.5...v1.2.6) (2022-08-01)
 
 
