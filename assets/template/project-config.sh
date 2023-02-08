@@ -15,7 +15,7 @@ has_session(){
 
 cmd=$(has_session && echo "-S ${save}" || echo "-c 'Obsession ${save}'")
 tmux send-keys -t $session:1 "vim ${cmd}" Enter
-tmux neww -d -n scratch  -t $session:2
+tmux neww -d -n workspace  -t $session:2
 tmux neww -d -n compiler  -t $session:8
 
 # vim:set ft=sh:
