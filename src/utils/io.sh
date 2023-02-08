@@ -151,13 +151,6 @@ load() {
 }
 
 show_version(){
-    banner
-    sleep 0.2 &
-    pid=$!
-    load "Checking Version" $pid
-    wait $pid
-    bold_green "[ "
-    "Using version $(echo $FRAMEWORK_VERSION | sed -E 's/v//g')"
-    bold_green " ]\n"
+  info "Using version $(bold $(echo $FRAMEWORK_VERSION | sed -E 's/v//g'))"
 }
 
