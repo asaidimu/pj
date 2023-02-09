@@ -151,6 +151,6 @@ load() {
 }
 
 show_version(){
-  info "Using version $(bold $(echo $FRAMEWORK_VERSION | sed -E 's/v//g'))"
+  inform "Using version $(bold $(echo $FRAMEWORK_VERSION | sed -E 's/v//g'))"
 }
 
