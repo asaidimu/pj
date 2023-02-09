@@ -1,3 +1,10 @@
+## [1.3.3](https://github.com/asaidimu/pj/compare/v1.3.2...v1.3.3) (2023-02-09)
+
+
+### Bug Fixes
+
+* fixed bug in displaying version information ([78f393a](https://github.com/asaidimu/pj/commit/78f393adaa72920e3a794fc1f2ed8d8a1b069212))
+
 ## [1.3.2](https://github.com/asaidimu/pj/compare/v1.3.1...v1.3.2) (2022-08-05)
 
 
