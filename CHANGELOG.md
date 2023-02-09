@@ -1,3 +1,10 @@
+## [1.3.4](https://github.com/asaidimu/pj/compare/v1.3.3...v1.3.4) (2023-02-09)
+
+
+### Bug Fixes
+
+* fixed typo in command name ([7370b51](https://github.com/asaidimu/pj/commit/7370b51ea61bcef59c66a584e13261cd0eb2ee96))
+
 ## [1.3.3](https://github.com/asaidimu/pj/compare/v1.3.2...v1.3.3) (2023-02-09)
 
 
