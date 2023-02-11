@@ -1,3 +1,10 @@
+# [1.4.0](https://github.com/asaidimu/pj/compare/v1.3.4...v1.4.0) (2023-02-11)
+
+
+### Features
+
+* updated open script to accomodate java ([23c0d1d](https://github.com/asaidimu/pj/commit/23c0d1df4a81aebf7492f645513d7123af3cdd21))
+
 ## [1.3.4](https://github.com/asaidimu/pj/compare/v1.3.3...v1.3.4) (2023-02-09)
 
 
