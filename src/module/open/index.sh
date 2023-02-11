@@ -36,6 +36,10 @@ _create_session(){
   # a script that takes the two params above. Use them as you may
   setup="$path/.project"
 
+  [ -x "$path/.project" ] || {
+    [ -x "$path/.pj" ] && setup="$path/.pj" || setup=""
+  }
+
   # a file with enviroment variables, with the following specs:
   # entries are formatted as ENV_VARIABLE=myValue
   # comments start with a '#' on a new line.
