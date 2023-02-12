@@ -1,3 +1,10 @@
+## [1.4.1](https://github.com/asaidimu/pj/compare/v1.4.0...v1.4.1) (2023-02-12)
+
+
+### Bug Fixes
+
+* deprecate use of '.project' for project config in favor of '.pj' ([19416d2](https://github.com/asaidimu/pj/commit/19416d27040ea01c83bb63b4c9420fb0a0773174))
+
 # [1.4.0](https://github.com/asaidimu/pj/compare/v1.3.4...v1.4.0) (2023-02-11)
 
 
