@@ -34,6 +34,7 @@ _create_session(){
   session_name="$2"
 
   # a script that takes the two params above. Use them as you may
+  # TODO: deprecate
   setup="$path/.project"
 
   [ -x "$path/.project" ] || {

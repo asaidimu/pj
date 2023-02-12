@@ -41,7 +41,7 @@ inform "Setting up $(green ${project})."
 }
 
 # -- add sessionizer start up file --
-config="${PROJECT_PATH}/.project"
+config="${PROJECT_PATH}/.pj"
 
 [ -e "${config}" ] || {
   extract_file "template/project-config.sh" "${config}"
