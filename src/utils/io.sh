@@ -54,7 +54,17 @@ error(){
   log "ERROR ($error): $message"
   label bold_red "error"
   echo "${message}"
-  # exit $error
+}
+
+panic() {
+  export FLAG_SILENT=0
+  [ -n "$1" ] && message=$1 || message="an unexpected error occured !"
+  [ -n "$2" ] && error=$2 || error=$ERROR
+
+  log "ERROR ($error): $message"
+  label bold_red "error"
+  echo "${message}"
+  exit $error
 }
 
 abort(){

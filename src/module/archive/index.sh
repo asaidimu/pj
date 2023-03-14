@@ -37,7 +37,7 @@ archive_project(){
 parse_args(){
   [ -z "$1" ] && {
     help
-    error "no input provided!" $ERROR_INVALID_OPTIONS
+    panic "no input provided!" $ERROR_INVALID_OPTIONS
   }
 
 
@@ -46,13 +46,13 @@ parse_args(){
   fi
 
   [ "$1" = "." -o "$1" = ".." ] && {
-    error "action cannot be perfomed" $ERROR_ILLEGAL_OP
+    panic "action cannot be perfomed" $ERROR_ILLEGAL_OP
   }
 
   setup "$1"
 
   [ -d $PROJECT_PATH ] || {
-    error "project $1 not found under $PROJECTS_PATH" $ERR0R_UNKNOWN_PROJECT
+    panic "project $1 not found under $PROJECTS_PATH" $ERR0R_UNKNOWN_PROJECT
   }
 
 }
