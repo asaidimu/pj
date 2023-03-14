@@ -1,3 +1,10 @@
+## [1.4.3](https://github.com/asaidimu/pj/compare/v1.4.2...v1.4.3) (2023-03-14)
+
+
+### Bug Fixes
+
+* delete incomplete thoughts from code ([cfdecc4](https://github.com/asaidimu/pj/commit/cfdecc460c00aa931e9eb1d5ce6a8d88005ad51e))
+
 ## [1.4.2](https://github.com/asaidimu/pj/compare/v1.4.1...v1.4.2) (2023-03-14)
 
 
