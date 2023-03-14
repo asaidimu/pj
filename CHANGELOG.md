@@ -1,3 +1,11 @@
+## [1.4.2](https://github.com/asaidimu/pj/compare/v1.4.1...v1.4.2) (2023-03-14)
+
+
+### Bug Fixes
+
+* aesthetic changes to the user interface ([0f56b3f](https://github.com/asaidimu/pj/commit/0f56b3f3b48433a4b634947097cf00186c926770))
+* implement panic method to allow program to exit with error ([691116a](https://github.com/asaidimu/pj/commit/691116a6bbc7f5d741d981578e013b7b7a8884ab))
+
 ## [1.4.1](https://github.com/asaidimu/pj/compare/v1.4.0...v1.4.1) (2023-02-12)
 
 
