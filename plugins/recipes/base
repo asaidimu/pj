@@ -11,13 +11,17 @@
 # -- add directories --
 inform "Setting up $(green ${project})."
 
-[ -d $PROJECT_PATH ] || {
+[ -d $PROJECT_PATH ] && {
+  success "Found project folder"
+} || {
   mkdir -p $PROJECT_PATH
   notify "Created project directory" "could not add project directory"
 }
 
   # -- initialise git repo --
-[ -d "$PROJECT_PATH/.git" ] || {
+  [ -d "$PROJECT_PATH/.git" ] && {
+  success "Found project repo"
+} || {
   # create git repo
   git init $PROJECT_PATH > /dev/null
   notify "Created git repo" "could not create git repo"
@@ -29,13 +33,17 @@ inform "Setting up $(green ${project})."
   notify "Added gitignore" "could not add gitignore"
 }
 
-[ -e "$PROJECT_PATH/README.md" ] || {
+[ -e "$PROJECT_PATH/README.md" ] && {
+  success "Found README.md"
+} || {
   extract_file "template/README.md" "$PROJECT_PATH/README.md"
   echo "# ${project}" > "$PROJECT_PATH/README.md"
   notify "Added README"
 }
 
-[ -e "$PROJECT_PATH/LICENSE.md" ] || {
+[ -e "$PROJECT_PATH/LICENSE.md" ] && {
+  success "Found LICENSE.md"
+} || {
   extract_file "template/LICENSE.md" "$PROJECT_PATH/LICENSE.md"
   notify "Added LICENSE"
 }
@@ -43,11 +51,14 @@ inform "Setting up $(green ${project})."
 # -- add sessionizer start up file --
 config="${PROJECT_PATH}/.pj"
 
-[ -e "${config}" ] || {
+[ -e "${config}" ] && {
+  success "Found config at $(green ${PROJECT_NAME}/`basename $config`)"
+} || {
   extract_file "template/project-config.sh" "${config}"
   chmod +x "${config}"
   success "Created project config"
-  success $(green "Happy Coding!")
 }
+
+success $(green "Happy Coding!")
 
 # vim:set et sw=2 ts=4 tw=80 ft=sh:
