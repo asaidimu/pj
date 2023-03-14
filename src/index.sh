@@ -22,10 +22,6 @@ start(){
       cmd="open"
   fi
 
-  alias "$cmd" &> /dev/null && {
-    "$cmd"
-  } || {
-
   route="$FRAMEWORK_ROUTE/${cmd}/index.sh"
 
   [ -e $route ] || {
@@ -37,8 +33,6 @@ start(){
 
   [ -z "$1" ] || shift
   . $route
-  }
-
 }
 
 remove_flags(){
