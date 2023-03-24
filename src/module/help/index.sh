@@ -35,7 +35,8 @@ init(){
     if [ -e $route ]; then
         _module "$route" "help"
     else
-        _help
+      banner
+      _help
     fi
 }
 

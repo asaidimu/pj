@@ -145,8 +145,6 @@ show_version(){
     pid=$!
     load "Checking Version" $pid
     wait $pid
-    bold_green "[ "
-    "Using version $(echo $FRAMEWORK_VERSION | sed -E 's/v//g')"
-    bold_green " ]\n"
+    bold_green "\t     Version $(echo $FRAMEWORK_VERSION | sed -E 's/v//g')\n"
 }
 

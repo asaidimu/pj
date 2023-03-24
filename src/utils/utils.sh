@@ -60,7 +60,7 @@ prompt(){
 }
 
 is_flag(){
-  echo "$1" | grep -E "(^\-\w$)|(^--(\w){2,}(\w|-)*$)" 2>&1 > /dev/null
+  echo "$1" | grep -E "(^-\w$)|(^--(\w){2,}(\w|-)*$)" 2>&1 > /dev/null
   [  $? -eq 0 ] && return 0 || return 1
 }
 
