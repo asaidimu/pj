@@ -1,3 +1,11 @@
+## [1.4.4](https://github.com/asaidimu/pj/compare/v1.4.3...v1.4.4) (2023-03-24)
+
+
+### Bug Fixes
+
+* updated help and version messages to show banner ([ac6c03c](https://github.com/asaidimu/pj/commit/ac6c03cd3875487a92872ab24e523ad4560d1aa7))
+* updated repo visibility ([1d2c8a4](https://github.com/asaidimu/pj/commit/1d2c8a41b259754f75a1655f52bdaf5dbf9009ef))
+
 ## [1.4.3](https://github.com/asaidimu/pj/compare/v1.4.2...v1.4.3) (2023-03-14)
 
 
