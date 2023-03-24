@@ -1,9 +1,8 @@
-![banner](https://raw.githubusercontent.com/asaidimu/calculator/main/screenshot.png?raw=true)
+![banner](https://raw.githubusercontent.com/asaidimu/pj/main/banner.png?raw=true)
 
 # PJ
 
 A simplistic plugin based framework for project management
-
 
 [![semantic-release: angular](https://img.shields.io/badge/semantic--release-angular-e10079?logo=semantic-release)](https://github.com/semantic-release/semantic-release)
 ![license](https://img.shields.io/github/license/asaidimu/pj)
