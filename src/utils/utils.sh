@@ -87,4 +87,13 @@ global_help(){
   . $help_module
 }
 
-
+# target list generator
+_generate_list(){
+  # implement your own algorithm in the PROJECT_LIST_GENERATOR file
+  if [ -e "$PROJECTS_LIST_GENERATOR" ]; then
+    # if the PROJECT_LIST_GENERATOR file exists, source it
+    . "$PROJECTS_LIST_GENERATOR"
+  else
+    echo "$HOME" > "$PROJECTS_LIST"
+  fi
+}
