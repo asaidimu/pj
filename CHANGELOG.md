@@ -1,3 +1,10 @@
+## [1.4.5](https://github.com/asaidimu/pj/compare/v1.4.4...v1.4.5) (2023-04-06)
+
+
+### Bug Fixes
+
+* extract  into  command ([2385451](https://github.com/asaidimu/pj/commit/2385451a50cf45a63326a22ebf93b58019bf2e8a))
+
 ## [1.4.4](https://github.com/asaidimu/pj/compare/v1.4.3...v1.4.4) (2023-03-24)
 
 
