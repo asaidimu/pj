@@ -12,16 +12,13 @@ jobs:
         if: ${{ github.event.workflow_run.conclusion == 'success' }}
         env:
             GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            GITHUB_REPOSITORY: ${{ github.repository }}
 
         steps:
             - name: Checkout
               uses: actions/checkout@v2
               with:
                   fetch-depth: 0
-
-            - name: build
-              run: |
-                  bin/build.sh
 
             - name: release
               run: |

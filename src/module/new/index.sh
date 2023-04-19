@@ -45,7 +45,7 @@ parse_args(){
 
   [ -z "$plugin" ] && {
     help
-    error "no input provided!" $ERROR_INVALID_OPTIONS
+    panic "no input provided!" $ERROR_INVALID_OPTIONS
   }
 
   [ "$plugin" = "help" ] && { help; return 2; }
@@ -59,13 +59,13 @@ parse_args(){
     project="$1"
     inform "Using base recipe"
   else
-    error "Recipe $1 not found!" $ERR0R_UNKNOWN_PLUGIN
+    panic "Recipe $1 not found!" $ERR0R_UNKNOWN_PLUGIN
     help
   fi
 
   [ -z "$project" ] && {
     help
-    error "project name not provided!" $ERROR_UNKNOWN_PROJECT
+    panic "project name not provided!" $ERROR_UNKNOWN_PROJECT
   } || {
     setup "$project"
   }
@@ -73,7 +73,7 @@ parse_args(){
   [ $FLAG_OVERWRITE -eq 1 ] && return 0
 
   [ -d $PROJECT_PATH ] && {
-    error "project $project found under $PROJECTS_PATH" $ERR0R_PROJECT_EXISTS
+    panic "project $project found under $PROJECTS_PATH" $ERR0R_PROJECT_EXISTS
   }
 
   return 0

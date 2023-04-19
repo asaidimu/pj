@@ -26,7 +26,7 @@ start(){
 
   [ -e $route ] || {
       error_msg="Command $(bold_yellow ${cmd}) not found! See $FRAMEWORK_NAME help for usage"
-      error "$error_msg" $ERROR_ILLEGAL_OP
+      panic "$error_msg" $ERROR_ILLEGAL_OP
   }
 
   log "Executing module [ ${cmd} ]"

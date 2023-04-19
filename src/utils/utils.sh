@@ -60,7 +60,7 @@ prompt(){
 }
 
 is_flag(){
-  echo "$1" | grep -E "(^\-\w$)|(^--(\w){2,}(\w|-)*$)" 2>&1 > /dev/null
+  echo "$1" | grep -E "(^-\w$)|(^--(\w){2,}(\w|-)*$)" 2>&1 > /dev/null
   [  $? -eq 0 ] && return 0 || return 1
 }
 
@@ -87,4 +87,13 @@ global_help(){
   . $help_module
 }
 
-
+# target list generator
+_generate_list(){
+  # implement your own algorithm in the PROJECT_LIST_GENERATOR file
+  if [ -e "$PROJECTS_LIST_GENERATOR" ]; then
+    # if the PROJECT_LIST_GENERATOR file exists, source it
+    . "$PROJECTS_LIST_GENERATOR"
+  else
+    echo "$HOME" > "$PROJECTS_LIST"
+  fi
+}

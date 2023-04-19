@@ -2,7 +2,6 @@ time_stamp(){
   echo "`date +%H:%M:%S`"
 }
 
-
 repl() { printf "$1"'%.s' $(eval "echo {1.."$(($2))"}"); }
 
 label(){
@@ -34,6 +33,11 @@ warn(){
   echo "${@}";
 }
 
+trace(){
+  label bold_cyan "TRACE"
+  printf "${@}"
+}
+
 debug(){
   silent=$FLAG_SILENT
   export FLAG_SILENT=0
@@ -47,6 +51,17 @@ error(){
   [ -n "$1" ] && message=$1 || message="an unexpected error occured !"
   [ -n "$2" ] && error=$2 || error=$ERROR
 
+  log "ERROR ($error): $message"
+  label bold_red "error"
+  echo "${message}"
+}
+
+panic() {
+  export FLAG_SILENT=0
+  [ -n "$1" ] && message=$1 || message="an unexpected error occured !"
+  [ -n "$2" ] && error=$2 || error=$ERROR
+
+  log "ERROR ($error): $message"
   label bold_red "error"
   echo "${message}"
   exit $error
@@ -56,7 +71,7 @@ abort(){
     [ -n "$1" ] && message=$1 || message="an unexpected error occured !"
     [ -n "$2" ] && error=$2 || error=$ERROR
 
-    log "ABORTED"
+    log "ERROR ($error): $message"
     printf "$(bold_red "[") $message $(bold_red "]")\n"
     exit $error
 }
@@ -104,31 +119,35 @@ clear_line(){
 
 load() {
     text="$1"
-    pid="$2"
+    msg="$2"
+    pid="$3"
+
+    [ -z "$pid" ] &&  {
+      pid="$msg"
+      msg=""
+    }
+
+    text="$(trace "${text}")"
+    a="${text}    "
+    b="${text} .  "
+    c="${text} .. "
+    d="${text} ..."
 
     waiting=1
     while [ $waiting -eq 1 ]; do
-        bold_green "[ "
-        printf "${text}    "
-        bold_green " ]"
+        printf "$a"
         sleep 0.3
         clear_line
 
-        bold_green "[ "
-        printf "${text} .  "
-        bold_green " ]"
+        printf "$b"
         sleep 0.3
         clear_line
 
-        bold_green "[ "
-        printf "${text} .. "
-        bold_green " ]"
+        printf "$c"
         sleep 0.3
         clear_line
 
-        bold_green "[ "
-        printf "${text} ..."
-        bold_green " ]"
+        printf "$d"
 
         ps cax | grep -E "\s?$pid" 2>&1 > /dev/null
         if [ $? -ne 0 ]; then
@@ -137,6 +156,8 @@ load() {
         sleep 0.3
         clear_line
     done
+
+    [ -z "$msg" ] && clear_line || inform "${msg}"
 }
 
 show_version(){
@@ -145,8 +166,6 @@ show_version(){
     pid=$!
     load "Checking Version" $pid
     wait $pid
-    bold_green "[ "
-    "Using version $(echo $FRAMEWORK_VERSION | sed -E 's/v//g')"
-    bold_green " ]\n"
+    bold_green "\t     Version $(echo $FRAMEWORK_VERSION | sed -E 's/v//g')\n"
 }
 

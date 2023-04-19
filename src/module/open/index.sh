@@ -2,17 +2,6 @@
 # summary: initialises the environment for a project
 # --------
 
-# target list generator
-_generate_list(){
-  # implement your own algorithm in the PROJECT_LIST_GENERATOR file
-  if [ -e "$PROJECTS_LIST_GENERATOR" ]; then
-    # if the PROJECT_LIST_GENERATOR file exists, source it
-    . "$PROJECTS_LIST_GENERATOR"
-  else
-    echo "$HOME" > "$PROJECTS_LIST"
-  fi
-}
-
 # use fzf to list and select a session target
 _select_target(){
   [ -e "$PROJECTS_LIST" ] || _generate_list
@@ -34,7 +23,12 @@ _create_session(){
   session_name="$2"
 
   # a script that takes the two params above. Use them as you may
+  # TODO: deprecate
   setup="$path/.project"
+
+  [ -x "$path/.project" ] || {
+    [ -x "$path/.pj" ] && setup="$path/.pj" || setup=""
+  }
 
   # a file with enviroment variables, with the following specs:
   # entries are formatted as ENV_VARIABLE=myValue
@@ -89,9 +83,6 @@ _sessionize(){
   fi
 
   _goto_session "$session_name"
-
-  #afterthought
-  _generate_list &
  }
 
 
@@ -139,4 +130,3 @@ init(){
 }
 
 init "$@"
-

@@ -1,3 +1,110 @@
+## [1.4.5](https://github.com/asaidimu/pj/compare/v1.4.4...v1.4.5) (2023-04-06)
+
+
+### Bug Fixes
+
+* extract  into  command ([2385451](https://github.com/asaidimu/pj/commit/2385451a50cf45a63326a22ebf93b58019bf2e8a))
+
+## [1.4.4](https://github.com/asaidimu/pj/compare/v1.4.3...v1.4.4) (2023-03-24)
+
+
+### Bug Fixes
+
+* updated help and version messages to show banner ([ac6c03c](https://github.com/asaidimu/pj/commit/ac6c03cd3875487a92872ab24e523ad4560d1aa7))
+* updated repo visibility ([1d2c8a4](https://github.com/asaidimu/pj/commit/1d2c8a41b259754f75a1655f52bdaf5dbf9009ef))
+
+## [1.4.3](https://github.com/asaidimu/pj/compare/v1.4.2...v1.4.3) (2023-03-14)
+
+
+### Bug Fixes
+
+* delete incomplete thoughts from code ([cfdecc4](https://github.com/asaidimu/pj/commit/cfdecc460c00aa931e9eb1d5ce6a8d88005ad51e))
+
+## [1.4.2](https://github.com/asaidimu/pj/compare/v1.4.1...v1.4.2) (2023-03-14)
+
+
+### Bug Fixes
+
+* aesthetic changes to the user interface ([0f56b3f](https://github.com/asaidimu/pj/commit/0f56b3f3b48433a4b634947097cf00186c926770))
+* implement panic method to allow program to exit with error ([691116a](https://github.com/asaidimu/pj/commit/691116a6bbc7f5d741d981578e013b7b7a8884ab))
+
+## [1.4.1](https://github.com/asaidimu/pj/compare/v1.4.0...v1.4.1) (2023-02-12)
+
+
+### Bug Fixes
+
+* deprecate use of '.project' for project config in favor of '.pj' ([19416d2](https://github.com/asaidimu/pj/commit/19416d27040ea01c83bb63b4c9420fb0a0773174))
+
+# [1.4.0](https://github.com/asaidimu/pj/compare/v1.3.4...v1.4.0) (2023-02-11)
+
+
+### Features
+
+* updated open script to accomodate java ([23c0d1d](https://github.com/asaidimu/pj/commit/23c0d1df4a81aebf7492f645513d7123af3cdd21))
+
+## [1.3.4](https://github.com/asaidimu/pj/compare/v1.3.3...v1.3.4) (2023-02-09)
+
+
+### Bug Fixes
+
+* fixed typo in command name ([7370b51](https://github.com/asaidimu/pj/commit/7370b51ea61bcef59c66a584e13261cd0eb2ee96))
+
+## [1.3.3](https://github.com/asaidimu/pj/compare/v1.3.2...v1.3.3) (2023-02-09)
+
+
+### Bug Fixes
+
+* fixed bug in displaying version information ([78f393a](https://github.com/asaidimu/pj/commit/78f393adaa72920e3a794fc1f2ed8d8a1b069212))
+
+## [1.3.2](https://github.com/asaidimu/pj/compare/v1.3.1...v1.3.2) (2022-08-05)
+
+
+### Bug Fixes
+
+* fix buggy update module ([ae44d27](https://github.com/asaidimu/pj/commit/ae44d273a02a76fa0c56309318e4efd5d54b4867))
+
+## [1.3.1](https://github.com/asaidimu/pj/compare/v1.3.0...v1.3.1) (2022-08-05)
+
+
+### Bug Fixes
+
+* fixed buggy update script ([55954ed](https://github.com/asaidimu/pj/commit/55954edb7e013ba9019292d08b444ebeb91bb6c5))
+
+# [1.3.0](https://github.com/asaidimu/pj/compare/v1.2.6...v1.3.0) (2022-08-05)
+
+
+### Features
+
+* changed logging format ([ca79324](https://github.com/asaidimu/pj/commit/ca79324cc463e1a31318aec9f1bb2343401b0ee0))
+
+## [1.2.6](https://github.com/asaidimu/pj/compare/v1.2.5...v1.2.6) (2022-08-01)
+
+
+### Bug Fixes
+
+* my stupidity ([eec3308](https://github.com/asaidimu/pj/commit/eec33086a6f4bf552edd80ad987df09271703840))
+
+## [1.2.5](https://github.com/asaidimu/pj/compare/v1.2.4...v1.2.5) (2022-08-01)
+
+
+### Bug Fixes
+
+* fixed repo url ([ba02c26](https://github.com/asaidimu/pj/commit/ba02c26c897ec5e6f17d671a511a30ec61639cfd))
+
+## [1.2.4](https://github.com/asaidimu/pj/compare/v1.2.3...v1.2.4) (2022-08-01)
+
+
+### Bug Fixes
+
+* update publish workflow ([78ed6f0](https://github.com/asaidimu/pj/commit/78ed6f0e4def94dc53e25eb1b1be78c2a8ba03fc))
+
+## [1.2.3](https://github.com/asaidimu/pj/compare/v1.2.2...v1.2.3) (2022-08-01)
+
+
+### Bug Fixes
+
+* create release tag ([34232b4](https://github.com/asaidimu/pj/commit/34232b4b95051332c7b2c777fe711bd326b0fcf7))
+
 ## [1.2.2](https://github.com/asaidimu/pj/compare/v1.2.1...v1.2.2) (2022-08-01)
 
 

@@ -2,12 +2,8 @@
 
 origin=$(git remote get-url origin | sed -E "s|^.*\.com:(.*)\..*$|\1|g")
 GITHUB_REPOSITORY=${GITHUB_REPOSITORY:-"${origin}"}
-
-_set_up(){
-  export VERSION=$(git describe --exact-match --abbrev=0 --tags 2>/dev/null)
-  export SCRIPT_URL="https://github.com/${GITHUB_REPOSITORY}"
-  export SCRIPT="install.sh"
-}
+export VERSION=$(git describe --exact-match --abbrev=0 --tags 2>/dev/null)
+export SCRIPT_URL="https://github.com/${GITHUB_REPOSITORY}"
 
 _update_template(){
   template_file="$1"; shift;
@@ -20,8 +16,8 @@ _update_template(){
 }
 
 _build(){
+   tar --exclude="./package.json" --exclude="./yarn.lock" --exclude="./install.sh" -Jcf pj.tar.xz ./*
    cp assets/installer.sh install.sh
-   tar --exclude="./package.json" --exclude="./yarn.lock" -Jcf pj.tar.xz ./*
    _update_template "./install.sh" "version:$VERSION" "url:$SCRIPT_URL"
    echo "export SOURCE=\$(cat <<EOF" >> "./install.sh"
     base64 "./pj.tar.xz" >> "./install.sh"
