@@ -82,8 +82,13 @@ parse_args(){
 init(){
   unset -f init
 
-  parse_args $@ && . $PROJECT_PLUGIN || exit 0
-
+  parse_args $@ && {
+    . $PROJECT_PLUGIN
+    _generate_list
+    success "Updated project list."
+  } || {
+    exit 0
+  }
 }
 
 init "$@"
