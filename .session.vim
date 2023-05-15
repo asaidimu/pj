@@ -13,14 +13,12 @@ if &shortmess =~ 'A'
 else
   set shortmess=aoO
 endif
-badd +28 ~/projects/pj/src/module/refresh/index.sh
-badd +131 ~/projects/pj/src/module/open/index.sh
-badd +98 ~/projects/pj/src/utils/utils.sh
+badd +1 ~/projects/pj/completions/zsh/completions.zsh
 argglobal
 %argdel
-edit ~/projects/pj/src/module/open/index.sh
+edit ~/projects/pj/completions/zsh/completions.zsh
 argglobal
-balt ~/projects/pj/src/module/refresh/index.sh
+balt ~/projects/pj/completions/zsh/completions.zsh
 setlocal fdm=manual
 setlocal fde=0
 setlocal fmr={{{,}}}
