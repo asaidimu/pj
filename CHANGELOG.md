@@ -1,3 +1,10 @@
+## [1.4.6](https://github.com/asaidimu/pj/compare/v1.4.5...v1.4.6) (2024-10-08)
+
+
+### Bug Fixes
+
+* fix bug in generator ([73a2055](https://github.com/asaidimu/pj/commit/73a2055a07aa7d5476065ef45fac9462f6936365))
+
 ## [1.4.5](https://github.com/asaidimu/pj/compare/v1.4.4...v1.4.5) (2023-04-06)
 
 
