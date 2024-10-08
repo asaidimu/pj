@@ -13,16 +13,15 @@ if &shortmess =~ 'A'
 else
   set shortmess=aoO
 endif
-badd +10 assets/template/project-config.sh
+badd +1 .github/workflows/release.yml
 badd +15 plugins/generator
 badd +28 ~/projects/pj/src/module/refresh/index.sh
 badd +5 ~/projects/pj/src/module/open/index.sh
 badd +98 ~/projects/pj/src/utils/utils.sh
 argglobal
 %argdel
-edit assets/template/project-config.sh
+edit .github/workflows/release.yml
 argglobal
-balt plugins/generator
 setlocal fdm=manual
 setlocal fde=0
 setlocal fmr={{{,}}}
@@ -33,12 +32,12 @@ setlocal fdn=20
 setlocal fen
 silent! normal! zE
 let &fdl = &fdl
-let s:l = 10 - ((9 * winheight(0) + 20) / 41)
+let s:l = 12 - ((11 * winheight(0) + 20) / 41)
 if s:l < 1 | let s:l = 1 | endif
 keepjumps exe s:l
 normal! zt
-keepjumps 10
-normal! 038|
+keepjumps 12
+normal! 010|
 tabnext 1
 if exists('s:wipebuf') && len(win_findbuf(s:wipebuf)) == 0 && getbufvar(s:wipebuf, '&buftype') isnot# 'terminal'
   silent exe 'bwipe ' . s:wipebuf
