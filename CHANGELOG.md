@@ -1,3 +1,10 @@
+## [1.5.1](https://github.com/asaidimu/pj/compare/v1.5.0...v1.5.1) (2024-10-10)
+
+
+### Bug Fixes
+
+* fix typo ([a2e5ab2](https://github.com/asaidimu/pj/commit/a2e5ab2210b5754f862db744722be4d6b50ba5d2))
+
 # [1.5.0](https://github.com/asaidimu/pj/compare/v1.4.6...v1.5.0) (2024-10-10)
 
 
