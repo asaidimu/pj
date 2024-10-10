@@ -16,7 +16,7 @@ _commit_is_tagged () {
 
 _release(){
   gh release create "${VERSION}" --title "${VERSION}" "${SCRIPT}"
-  gh release upload "latest" "${SCRIPT}" --clober
+  gh release upload "latest" "${SCRIPT}" --clobber
 }
 
 _build(){
