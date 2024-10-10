@@ -35,7 +35,7 @@ extract_file(){
 
   template="$ASSET_PATH/$1"
   output="$2"
-  [ -e "$template" ] && cp "$template" "$output"
+  [ -e "$template" ] && cp -r "$template" "$output"
 }
 
 question(){

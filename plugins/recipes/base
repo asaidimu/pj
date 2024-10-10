@@ -1,7 +1,7 @@
 # -- about ---=============================================================== #
 # NAME        : base-project
 # VERSION     : 0.1
-# DESCRIPTION : a base project folder with git started and a tmux env
+# DESCRIPTION : a base project folder with a tmux env, git, and github workflows
 # REQUIRES    :
 
 # AUTHOR      : Lolokile Saidimu
@@ -27,10 +27,12 @@ inform "Setting up $(green ${project})."
   notify "Created git repo" "could not create git repo"
 
   # add .gitignore
-  ignorefile="$PROJECT_PATH/.gitignore"
-
   extract_file "template/gitignore" "$PROJECT_PATH/.gitignore"
   notify "Added gitignore" "could not add gitignore"
+
+  # add github workflows
+  extract_file "template/github" "$PROJECT_PATH/.github"
+  notify "Added github workflows" "Could not add github workflows"
 }
 
 [ -e "$PROJECT_PATH/README.md" ] && {

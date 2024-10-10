@@ -11,5 +11,5 @@ A simplistic plugin based framework for project management
 ## Installation
 
 ```sh
-sh <(curl -fsSL https://github.com/asaidimu/pj/releases/download/${version}/install.sh)
+sh <(curl -fsSL https://github.com/asaidimu/pj/releases/download/latest/install.sh)
 ```
