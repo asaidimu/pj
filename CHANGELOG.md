@@ -1,3 +1,10 @@
+# [1.5.0](https://github.com/asaidimu/pj/compare/v1.4.6...v1.5.0) (2024-10-10)
+
+
+### Features
+
+* add github workflows to template ([abd863a](https://github.com/asaidimu/pj/commit/abd863ae077e58bf61d6a495f23034510d93db89))
+
 ## [1.4.6](https://github.com/asaidimu/pj/compare/v1.4.5...v1.4.6) (2024-10-08)
 
 
