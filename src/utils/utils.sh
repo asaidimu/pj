@@ -5,6 +5,13 @@ setup(){
   export PROJECT_DATA="$PROJECT_PATH/.$FRAMEWORK_NAME"
 }
 
+check_command() {
+    if ! command -v $1 &> /dev/null; then
+        panic "Command $1 not found!" $ERR0R_MISSING_COMMAND
+        exit 1
+    fi
+}
+
 update_template(){
   [ -z "$1" ] && { error "no template specified!" $ERROR_INVALID_OPTIONS; }
   template_file="$1"; shift;
@@ -36,27 +43,6 @@ extract_file(){
   template="$ASSET_PATH/$1"
   output="$2"
   [ -e "$template" ] && cp -r "$template" "$output"
-}
-
-question(){
-  property=$1
-  default=$2
-
-  prompt="$(echo `bold_grey  'question'`): $property"
-
-  [ -n "$default" ] && prompt="$prompt ($(blue "$default"))"
-
-  prompt="$prompt: "
-
-  read -p "$prompt" input
-
-  [ -z "$input" ] && input=$default
-
-  echo $input
-}
-
-prompt(){
-  echo "$(red "user@host:")$(blue "~")$ $@"
 }
 
 is_flag(){

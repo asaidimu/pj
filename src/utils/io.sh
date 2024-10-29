@@ -26,6 +26,27 @@ inquire(){
   echo "$answer"
 }
 
+prompt(){
+  echo "$(red "user@host:")$(blue "~")$ $@"
+}
+
+question(){
+  property=$1
+  default=$2
+
+  prompt="$(echo `bold_grey  'question'`): $property"
+
+  [ -n "$default" ] && prompt="$prompt ($(blue "$default"))"
+
+  prompt="$prompt: "
+
+  read -p "$prompt" input
+
+  [ -z "$input" ] && input=$default
+
+  echo $input
+}
+
 inform(){
   label bold_blue "INFO"
   echo "${@}";
