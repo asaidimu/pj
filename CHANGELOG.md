@@ -1,3 +1,10 @@
+## [1.5.3](https://github.com/asaidimu/pj/compare/v1.5.2...v1.5.3) (2024-10-29)
+
+
+### Bug Fixes
+
+* fix template issues ([7e7cddb](https://github.com/asaidimu/pj/commit/7e7cddb82d3c4fd0a4c63e2f1752bdf016163dc5))
+
 ## [1.5.2](https://github.com/asaidimu/pj/compare/v1.5.1...v1.5.2) (2024-10-29)
 
 
