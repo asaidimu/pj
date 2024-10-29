@@ -1,3 +1,11 @@
+## [1.5.2](https://github.com/asaidimu/pj/compare/v1.5.1...v1.5.2) (2024-10-29)
+
+
+### Bug Fixes
+
+* add a new io command ([e65bff9](https://github.com/asaidimu/pj/commit/e65bff95a00fa1c38bcae515462a84d4929a5767))
+* add a new io command ([b0d4108](https://github.com/asaidimu/pj/commit/b0d41083d21a331dbd5882e261f86c1b81b2d3f4))
+
 ## [1.5.1](https://github.com/asaidimu/pj/compare/v1.5.0...v1.5.1) (2024-10-10)
 
 
