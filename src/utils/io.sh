@@ -20,6 +20,12 @@ log(){
   echo "$out" >> $FRAMEWORK_LOGS
 }
 
+inquire(){
+  msg=$(label bold_blue "INPUT")
+  read -p "$msg $@? " answer
+  echo "$answer"
+}
+
 inform(){
   label bold_blue "INFO"
   echo "${@}";
@@ -168,4 +174,3 @@ show_version(){
     wait $pid
     bold_green "\t     Version $(echo $FRAMEWORK_VERSION | sed -E 's/v//g')\n"
 }
-
