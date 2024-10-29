@@ -16,5 +16,5 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-    - name: Run test command
-      run: echo test
+      - name: Run test command
+        run: echo test
