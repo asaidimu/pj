@@ -1,3 +1,10 @@
+## [1.5.4](https://github.com/asaidimu/pj/compare/v1.5.3...v1.5.4) (2025-01-07)
+
+
+### Bug Fixes
+
+* add a new recipe ([ed5889a](https://github.com/asaidimu/pj/commit/ed5889ae3efa846d444794d6a92720d0a89be589))
+
 ## [1.5.3](https://github.com/asaidimu/pj/compare/v1.5.2...v1.5.3) (2024-10-29)
 
 
