@@ -60,6 +60,7 @@ _main(){
     sleep 0.3 &
     pid=$!
     _load "Initializing" "Dependency checks complete" $pid
+
     # -- clean up --
     _clean &
     pid=$!
@@ -232,4 +233,3 @@ _banner(){
 }
 
 # ---------------------------------------------------------------------------- #
-

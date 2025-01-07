@@ -195,3 +195,10 @@ show_version(){
     wait $pid
     bold_green "\t     Version $(echo $FRAMEWORK_VERSION | sed -E 's/v//g')\n"
 }
+
+check_command() {
+    if ! command -v $1 &> /dev/null; then
+        abort "$1 is required but not installed."
+        exit 1
+    fi
+}

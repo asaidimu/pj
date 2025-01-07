@@ -9,6 +9,7 @@
 # =========================================================================== #
 
 # -- add directories --
+
 inform "Setting up $(green ${project})."
 
 [ -d $PROJECT_PATH ] && {
@@ -19,7 +20,7 @@ inform "Setting up $(green ${project})."
 }
 
   # -- initialise git repo --
-  [ -d "$PROJECT_PATH/.git" ] && {
+[ -d "$PROJECT_PATH/.git" ] && {
   success "Found project repo"
 } || {
   # create git repo
@@ -61,6 +62,6 @@ config="${PROJECT_PATH}/.pj"
   success "Created project config"
 }
 
-success $(green "Happy Coding!")
+success $(green "Created a base project!")
 
 # vim:set et sw=2 ts=4 tw=80 ft=sh:
