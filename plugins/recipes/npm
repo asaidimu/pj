@@ -28,7 +28,7 @@ else
     full_package_name="$package_name"
 fi
 
-cd "$project"
+cd "$PROJECT_PATH"
 mkdir -p src/__tests__ docs .github/workflows
 
 inform  "Creating package.json..."
