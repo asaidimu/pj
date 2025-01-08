@@ -1,3 +1,10 @@
+## [1.5.6](https://github.com/asaidimu/pj/compare/v1.5.5...v1.5.6) (2025-01-08)
+
+
+### Bug Fixes
+
+* fix type ([777e9a5](https://github.com/asaidimu/pj/commit/777e9a5c549eafcc01dec4ed70d816727f33433b))
+
 ## [1.5.5](https://github.com/asaidimu/pj/compare/v1.5.4...v1.5.5) (2025-01-07)
 
 
