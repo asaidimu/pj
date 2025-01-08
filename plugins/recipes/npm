@@ -73,7 +73,7 @@ cat > dist.package.json << EOF
     "./*"
   ],
   "keywords": [
-    "typescript",
+    "typescript"
   ],
   "author": "${author_name} <${author_email}>",
   "license": "MIT",
@@ -112,7 +112,7 @@ cat > package.json << EOF
     "postbuild": "cp README.md LICENSE.md ./dist && cp ./dist.package.json ./dist/package.json"
   },
   "keywords": [
-    "typescript",
+    "typescript"
   ],
   "author": "${author_name} <${author_email}>",
   "license": "MIT",
@@ -186,7 +186,7 @@ cat > tsconfig.json << EOF
     "noPropertyAccessFromIndexSignature": false,
     "outDir": "./dist"
   },
-  "include": ["src"],
+  "include": ["src/**/*.ts", "index.ts"],
   "exclude": ["node_modules"]
 }
 EOF
@@ -315,7 +315,7 @@ EOF
 
 # Create LICENSE
 inform "Creating LICENSE..."
-cat > LICENSE << EOF
+cat > LICENSE.md << EOF
 MIT License
 
 Copyright (c) $(date +%Y) ${author_name}
