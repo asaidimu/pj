@@ -1,3 +1,10 @@
+## [1.5.8](https://github.com/asaidimu/pj/compare/v1.5.7...v1.5.8) (2025-01-08)
+
+
+### Bug Fixes
+
+* fix typo ([2dd344a](https://github.com/asaidimu/pj/commit/2dd344a58f9b69f6b2f04c15135b3bfa1c8112ef))
+
 ## [1.5.7](https://github.com/asaidimu/pj/compare/v1.5.6...v1.5.7) (2025-01-08)
 
 
