@@ -208,7 +208,7 @@ EOF
 
 # GitHub Actions workflow
 inform "Creating GitHub Actions workflow..."
-cat > .github/workflows/version.yml << EOF
+cat > .github/workflows/version.yaml << EOF
 name: Versioning Workflow
 
 on:
