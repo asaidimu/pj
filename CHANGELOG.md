@@ -1,3 +1,10 @@
+## [1.5.9](https://github.com/asaidimu/pj/compare/v1.5.8...v1.5.9) (2025-02-13)
+
+
+### Bug Fixes
+
+* fix npm template ([eb6516c](https://github.com/asaidimu/pj/commit/eb6516c061e550fdf403c855fae05fce8dcff7b9))
+
 ## [1.5.8](https://github.com/asaidimu/pj/compare/v1.5.7...v1.5.8) (2025-01-08)
 
 
