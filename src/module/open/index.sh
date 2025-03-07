@@ -36,25 +36,26 @@ _create_session(){
   env="$path/.env"
 
   cmd="new-session -ds $session_name -c $path"
+  tmp_cmd = "$FRAMEWORK_TMP/tmux.cmd"
 
-  echo $cmd > /tmp/tmux.cmd
+  echo $cmd > $tmp_cmd
   # build the tmux options add env variables
   if [ -e "$env" ]; then
     # strip comments and blank lines from the env file
     sed -E '/^(#.*)?$/d; s/^(.*)(=)(.*)$/\1\2"\3"/g;' "$env" | while IFS= read -r var
     do
       cmd="$cmd -e $var"
-      echo $cmd > /tmp/tmux.cmd
+      echo $cmd > $tmp_cmd
     done
   fi
 
   # run tmux with the commands
-  eval "tmux $(cat /tmp/tmux.cmd)"
+  eval "tmux $(cat $tmp_cmd)"
 
   # execute the setup script
   [ -x "$setup" ] && $setup "$session_name" "$path"
 
-  # ensures continuity of script
+  # ensures continuity of script. Why?
   echo
 }
 
