@@ -38,6 +38,6 @@
 [ -d $PROJECTS_PATH ] || error "$PROJECTS_PATH does not exist !"
 
 [ -d $FRAMEWORK_CONFIG_DIR ] || mkdir -p "$FRAMEWORK_CONFIG_DIR"
-[ -d $FRAMEWORK_TMP ] || mkdir "$FRAMEWORK_TMP"
+[ -d $FRAMEWORK_TMP ] || mkdir -p "$FRAMEWORK_TMP"
 [ -d $FRAMEWORK_DATA ] || mkdir -p "$FRAMEWORK_DATA"
 [ -e $PROJECTS_LIST_GENERATOR ] || error "$PROJECT_LIST_GENERATOR does not exist !"
