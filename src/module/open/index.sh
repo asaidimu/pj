@@ -1,5 +1,5 @@
 # --------
-# summary: initialises the environment for a project
+# summary: Initialises the environment for a project
 # --------
 
 # use fzf to list and select a session target
@@ -36,7 +36,7 @@ _create_session(){
   env="$path/.env"
 
   cmd="new-session -ds $session_name -c $path"
-  tmp_cmd = "$FRAMEWORK_TMP/tmux.cmd"
+  tmp_cmd="$FRAMEWORK_TMP/tmux.cmd"
 
   echo $cmd > $tmp_cmd
   # build the tmux options add env variables
