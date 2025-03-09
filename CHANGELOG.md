@@ -1,3 +1,10 @@
+## [1.5.12](https://github.com/asaidimu/pj/compare/v1.5.11...v1.5.12) (2025-03-09)
+
+
+### Bug Fixes
+
+* fixed typo in per user ([43564ee](https://github.com/asaidimu/pj/commit/43564eeb3ce599f7e1b906e96c8ebdc3c51389db))
+
 ## [1.5.11](https://github.com/asaidimu/pj/compare/v1.5.10...v1.5.11) (2025-03-07)
 
 
