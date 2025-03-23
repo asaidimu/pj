@@ -278,9 +278,6 @@ clean:
 	rm -f ${package_name}
 EOF
 
-# Initialize git repository
-inform "Initializing git repository..."
-git init
 git add .
 git commit -m "Initial commit"
 
