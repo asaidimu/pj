@@ -1,3 +1,10 @@
+## [1.6.2](https://github.com/asaidimu/pj/compare/v1.6.1...v1.6.2) (2025-03-23)
+
+
+### Bug Fixes
+
+* fix double license in golib ([e41a8f4](https://github.com/asaidimu/pj/commit/e41a8f4c7be28c1ebd3364015f35d3e4a0b47a91))
+
 ## [1.6.1](https://github.com/asaidimu/pj/compare/v1.6.0...v1.6.1) (2025-03-23)
 
 
