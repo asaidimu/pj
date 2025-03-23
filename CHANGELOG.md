@@ -1,3 +1,10 @@
+## [1.6.1](https://github.com/asaidimu/pj/compare/v1.6.0...v1.6.1) (2025-03-23)
+
+
+### Bug Fixes
+
+* fix re-initializing git ([7d26bc5](https://github.com/asaidimu/pj/commit/7d26bc56924352e6982688e9e5c8658cb800a200))
+
 # [1.6.0](https://github.com/asaidimu/pj/compare/v1.5.12...v1.6.0) (2025-03-23)
 
 
