@@ -1,3 +1,10 @@
+# [1.6.0](https://github.com/asaidimu/pj/compare/v1.5.12...v1.6.0) (2025-03-23)
+
+
+### Features
+
+* add golib ([c549de9](https://github.com/asaidimu/pj/commit/c549de93c18ef5babb45e064c122779ea69840cb))
+
 ## [1.5.12](https://github.com/asaidimu/pj/compare/v1.5.11...v1.5.12) (2025-03-09)
 
 
