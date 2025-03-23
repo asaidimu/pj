@@ -1,0 +1,296 @@
+# -- about ---=============================================================== #
+# NAME        : golib
+# VERSION     : 1.0
+# DESCRIPTION : a base project folder for Go libraries
+# REQUIRES    : go
+
+# AUTHOR      : Lolokile Saidimu
+# LICENSE     : MIT
+# =========================================================================== #
+
+# -- start with base --
+source "$RECIPES_PATH/base"
+
+inform "Setting up a Go library project."
+
+check_command "go"
+
+package_name=$(question "Enter package name (e.g., my-package):" $project)
+package_description=$(question "Enter package description" "")
+author_name=$(question "Enter your name" `git config user.name`)
+author_email=$(question "Enter your email" `git config user.email`)
+github_username=$(question "Enter your github username" "")
+go_module_path=$(question "Enter Go module path (e.g., github.com/$github_username/$package_name):" "github.com/$github_username/$package_name")
+
+cd "$PROJECT_PATH"
+mkdir -p cmd pkg internal docs examples .github/workflows
+
+inform "Creating main.go"
+cat > main.go <<EOF
+package main
+
+import (
+	"fmt"
+	"github.com/${github_username}/${package_name}/pkg"
+)
+
+func main() {
+	fmt.Println(pkg.Greeting("World"))
+}
+EOF
+
+inform "Creating pkg/greeting.go"
+cat > pkg/greeting.go <<EOF
+package pkg
+
+// Greeting returns a greeting message for the given name
+func Greeting(name string) string {
+	return "Hello, " + name + "!"
+}
+EOF
+
+inform "Creating pkg/greeting_test.go"
+cat > pkg/greeting_test.go <<EOF
+package pkg
+
+import "testing"
+
+func TestGreeting(t *testing.T) {
+	expected := "Hello, World!"
+	if got := Greeting("World"); got != expected {
+		t.Errorf("Greeting() = %q, want %q", got, expected)
+	}
+}
+EOF
+
+inform "Creating go.mod file"
+go mod init ${go_module_path}
+
+inform "Creating .releaserc.json for semantic versioning"
+cat > .releaserc.json << EOF
+{
+  "branches": ["main"],
+  "plugins": [
+    "@semantic-release/commit-analyzer",
+    "@semantic-release/release-notes-generator",
+    [
+      "@semantic-release/changelog",
+      {
+        "changelogFile": "CHANGELOG.md"
+      }
+    ],
+    [
+      "@semantic-release/git",
+      {
+        "assets": ["CHANGELOG.md"],
+        "message": "chore(release): Release v\${nextRelease.version}\\n\\n\${nextRelease.notes}"
+      }
+    ],
+    "@semantic-release/github"
+  ]
+}
+EOF
+
+# GitHub Actions workflow
+inform "Creating GitHub Actions workflow for testing..."
+mkdir -p .github/workflows
+cat > .github/workflows/test.yaml << EOF
+name: Test Workflow
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 'stable'
+          cache: true
+
+      - name: Get dependencies
+        run: go mod download
+
+      - name: Test
+        run: go test -v ./...
+
+      - name: Build
+        run: go build -v ./...
+EOF
+
+inform "Creating GitHub Actions workflow for versioning..."
+cat > .github/workflows/version.yaml << EOF
+name: Versioning Workflow
+
+on:
+  workflow_run:
+    workflows: ["Test Workflow"]
+    types:
+      - completed
+
+jobs:
+  version:
+    if: \${{ github.event.workflow_run.conclusion == 'success' && github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: version
+        uses: cycjimmy/semantic-release-action@v4
+        env:
+          GITHUB_TOKEN: \${{ secrets.GITHUB_TOKEN }}
+EOF
+
+# README.md
+inform "Creating README.md..."
+cat > README.md << EOF
+# ${package_name}
+
+[![Go Reference](https://pkg.go.dev/badge/github.com/${github_username}/${package_name}.svg)](https://pkg.go.dev/github.com/${github_username}/${package_name})
+[![Build Status](https://github.com/${github_username}/${package_name}/workflows/Test%20Workflow/badge.svg)](https://github.com/${github_username}/${package_name}/actions)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+${package_description}
+
+## Installation
+
+\`\`\`bash
+go get github.com/${github_username}/${package_name}
+\`\`\`
+
+## Usage
+
+\`\`\`go
+package main
+
+import (
+	"fmt"
+	"github.com/${github_username}/${package_name}/pkg"
+)
+
+func main() {
+	fmt.Println(pkg.Greeting("World"))
+}
+\`\`\`
+
+## Development
+
+This project follows conventional commits for automated semantic versioning.
+
+### Commit Message Format
+
+- **fix:** a commit that fixes a bug (corresponds to PATCH in SemVer)
+- **feat:** a commit that adds new functionality (corresponds to MINOR in SemVer)
+- **feat!:** or **fix!:** or **refactor!:** etc., a commit with a footer \`BREAKING CHANGE:\` introduces a breaking API change (corresponds to MAJOR in SemVer)
+
+## Contributing
+
+1. Fork the repository
+2. Create your feature branch (\`git checkout -b feature/amazing-feature\`)
+3. Commit your changes (\`git commit -m 'feat: add some amazing feature'\`)
+4. Push to the branch (\`git push origin feature/amazing-feature\`)
+5. Open a Pull Request
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+EOF
+
+# Create .gitignore
+inform "Creating .gitignore..."
+cat > .gitignore << EOF
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with 'go test -c'
+*.test
+
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
+
+# Dependency directories (remove the comment below to include it)
+# vendor/
+
+# Go workspace file
+go.work
+
+# Miscellaneous
+.DS_Store
+*~
+*.log
+EOF
+
+# Create LICENSE
+inform "Creating LICENSE..."
+cat > LICENSE << EOF
+MIT License
+
+Copyright (c) $(date +%Y) ${author_name}
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+EOF
+
+# Creating Makefile
+inform "Creating Makefile..."
+cat > Makefile << EOF
+.PHONY: all build test clean
+
+all: build
+
+build:
+	go build -v ./...
+
+test:
+	go test -v ./...
+
+clean:
+	rm -f ${package_name}
+EOF
+
+# Initialize git repository
+inform "Initializing git repository..."
+git init
+git add .
+git commit -m "Initial commit"
+
+inform "Go library setup complete! 🎉"
+inform "Next steps:"
+echo "1. cd ${package_name}"
+echo "2. Review and update the library content"
+echo "3. Run 'go test ./...' to verify everything works"
+echo "4. Create a repository on GitHub"
+echo "5. Push your code: git remote add origin https://github.com/${github_username}/${package_name}.git && git push -u origin main"
+echo "6. Set up a GITHUB_TOKEN with appropriate permissions for the GitHub Actions workflow"
+
+# vim:set et sw=2 ts=4 tw=80 ft=sh:
