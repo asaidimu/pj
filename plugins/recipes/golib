@@ -237,7 +237,7 @@ EOF
 
 # Create LICENSE
 inform "Creating LICENSE..."
-cat > LICENSE << EOF
+cat > LICENSE.md << EOF
 MIT License
 
 Copyright (c) $(date +%Y) ${author_name}
