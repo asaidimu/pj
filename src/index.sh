@@ -79,9 +79,7 @@ _remove_flags() {
 
   arguments=()
   for arg in "$@"; do
-    if is_flag "$arg"; then
-      set_flag "$arg"
-    else
+    if [ $status -eq $NOT_A_FLAG ]; then
       arguments+=("$arg")
     fi
   done

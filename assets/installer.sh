@@ -20,9 +20,9 @@ _clean(){
 
 _extract() {
     TMPFILE="$(mktemp -t --suffix=.SUFFIX installer_sh.XXXXXX)"
-    trap "rm -f '$TMPFILETMPFILE'" 0               # EXIT
-    trap "rm -f '$TMPFILETMPFILE'; exit 1" 2       # INT
-    trap "rm -f '$TMPFILETMPFILE'; exit 1" 1 15    # HUP TERM
+    trap "rm -f '$TMPFILE'" 0               # EXIT
+    trap "rm -f '$TMPFILE'; exit 1" 2       # INT
+    trap "rm -f '$TMPFILE'; exit 1" 1 15    # HUP TERM
 
     echo "$SOURCE" | base64 --decode > $TMPFILE
     mkdir -p $FRAMEWORK_PATH

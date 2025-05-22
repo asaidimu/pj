@@ -58,6 +58,10 @@ export DEFAULT_FRAMEWORK_ROUTE="$FRAMEWORK_ROUTE/help"
 export DEBUG_MODULE_NAME=0
 export DEBUG=0
 
+# -- UTIL CONST VARIABLES --
+export NOT_A_FLAG=997
+
+
 # -- load user env --
 [ -e $FRAMEWORK_CONFIG ] && . $FRAMEWORK_CONFIG
 

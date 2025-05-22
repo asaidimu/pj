@@ -1,22 +1,19 @@
 set_flag() {
   case "$1" in
-    --silent | -s)
+    -s|--silent)
       export FLAG_SILENT=1
       ;;
-    --overwrite | -o )
+    -o|--overwrite)
       export FLAG_OVERWRITE=1
       ;;
-    --help | -h )
-        global_help
-        exit
+    -h|--help)
+      global_help
       ;;
-    --version | -v )
-        show_version
-        exit
-        ;;
-    * )
-      return "$ERROR_UNKNOWN_FLAG"
+    -v|--version)
+      show_version
+      ;;
+    *)
+      return $NOT_A_FLAG
       ;;
   esac
-  return 0
 }

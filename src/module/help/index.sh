@@ -29,7 +29,13 @@ _module() {
 init() {
     unset -f init
     module="$1"
+    user_route="$CUSTOM_PLUGINS_PATH/${cmd}/index.sh"
     route="$FRAMEWORK_ROUTE/$module/index.sh"
+
+    if [ -e "$user_route" ]; then
+      route="$user_route"
+    fi
+
     if [ -e "$route" ]; then
         _module "$route" "help"
     else
