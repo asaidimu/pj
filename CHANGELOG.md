@@ -1,3 +1,10 @@
+## [1.6.4](https://github.com/asaidimu/pj/compare/v1.6.3...v1.6.4) (2025-05-22)
+
+
+### Bug Fixes
+
+* update readme ([dc61e0f](https://github.com/asaidimu/pj/commit/dc61e0ffc62b127fd63f750fd07cdc5515d41bfa))
+
 ## [1.6.3](https://github.com/asaidimu/pj/compare/v1.6.2...v1.6.3) (2025-05-22)
 
 
