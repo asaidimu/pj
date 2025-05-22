@@ -43,7 +43,7 @@
 [ ! -e "$PROJECTS_LIST_GENERATOR" ] && panic "$PROJECT_LIST_GENERATOR does not exist !" 1
 
 # -- COMMAND CHECKS --
-REQUIRED_COMMANDS="sh tmux fzf tree awk sed grep curl tar mkdir ls cat date read printf echo"
+REQUIRED_COMMANDS="sh tmux fzf tree awk sed grep curl tar mkdir ls cat date read printf echo jq"
 for cmd in $REQUIRED_COMMANDS; do
   check_command "$cmd"
   [ $? -eq 0 ] || panic "$cmd is required but not installed!" 1

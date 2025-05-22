@@ -24,29 +24,16 @@ PJ is a modular, scriptable, and POSIX-compliant project management framework fo
 
 PJ requires the following standard Unix tools:
 
-- `sh`, `tmux`, `fzf`, `tree`, `awk`, `sed`, `grep`, `curl`, `tar`, `mkdir`, `ls`, `cat`, `date`, `read`, `printf`, `echo`
-
-### Installing Dependencies
-
-- **Ubuntu/Debian**:
-  ```sh
-  sudo apt install tmux fzf tree awk sed grep curl tar coreutils
-  ```
-- **macOS (Homebrew)**:
-  ```sh
-  brew install tmux fzf tree gawk gnu-sed grep curl gnu-tar coreutils
-  ```
+- `sh`, `tmux`, `fzf`, `tree`, `awk`, `sed`, `grep`, `curl`, `tar`, `mkdir`, `ls`, `cat`, `date`, `read`, `printf`, `echo`, `jq`
 
 PJ will notify you if any required tool is missing.
 
 ## Installation
 
-To install PJ, clone the repository and run the installation script:
+Run the installation script:
 
 ```sh
-git clone https://github.com/asaidimu/pj.git
-cd pj
-./install.sh
+sh <(curl -fsSL https://github.com/asaidimu/pj/releases/download/latest/install.sh)
 ```
 
 This installs PJ to your user directory without requiring root access or modifying system files. The process is idempotent, so it’s safe to run multiple times.
