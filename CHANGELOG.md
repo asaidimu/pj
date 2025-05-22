@@ -1,3 +1,10 @@
+## [1.6.6](https://github.com/asaidimu/pj/compare/v1.6.5...v1.6.6) (2025-05-22)
+
+
+### Bug Fixes
+
+* refactor ([aa22a94](https://github.com/asaidimu/pj/commit/aa22a945ff1492834faacaf991661d88c4928784))
+
 ## [1.6.5](https://github.com/asaidimu/pj/compare/v1.6.4...v1.6.5) (2025-05-22)
 
 
