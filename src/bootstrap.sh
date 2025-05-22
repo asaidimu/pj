@@ -11,4 +11,4 @@ export UTILITIES_PATH="$FRAMEWORK_SOURCE_PATH/utils"
 . "$FRAMEWORK_PATH/src/env.sh"
 
 # -- start --
-. $FRAMEWORK_PATH/src/index.sh
+. "$FRAMEWORK_PATH/src/index.sh"

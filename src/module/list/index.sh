@@ -2,7 +2,7 @@
 # summary: list active projects
 # --------
 
-help(){
+help() {
 sum="list active projects"
 cmd="list"
 usage="$FRAMEWORK_NAME $cmd"
@@ -23,26 +23,26 @@ $(bold EXAMPLE)
 EOF
 }
 
-parse_args(){
+parse_args() {
   [ "$1" = "help" ] && { help; return 0; }
 
   [ "$1" = "." -o "$1" = ".." ] && {
-    error "action cannot be perfomed" $ERROR_ILLEGAL_OP
+    error "action cannot be perfomed" "$ERROR_ILLEGAL_OP"
   }
 
   setup "$1"
 
-  [ -d $PROJECT_PATH ] || {
-    error "project $1 not found under $PROJECTS_PATH" $ERR0R_UNKNOWN_PROJECT
+  [ -d "$PROJECT_PATH" ] || {
+    error "project $1 not found under $PROJECTS_PATH" "$ERR0R_UNKNOWN_PROJECT"
   }
 }
 
-init(){
+init() {
   unset -f init
 
   [ -z "$1" ] && {
-    ls $PROJECTS_PATH | cat
-    return;
+    ls "$PROJECTS_PATH" | cat
+    return
   }
 
   help

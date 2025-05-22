@@ -2,7 +2,7 @@
 # summary: example module
 # --------
 
-help(){
+help() {
 cat <<EOF
 $(bold ABOUT)
     $(bold "$FRAMEWORK_NAME $FRAMEWORK_VERSION")
@@ -18,14 +18,13 @@ $(bold EXAMPLE)
 EOF
 }
 
-parse_args(){
+parse_args() {
   [ "$1" = "help" ] && { help; return 0; }
 }
 
-init(){
+init() {
   unset -f init
-
-  parse_args $@
+  parse_args "$@"
   printf "Hello, World!\n"
 }
 

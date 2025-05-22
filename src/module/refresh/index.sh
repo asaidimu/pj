@@ -2,7 +2,7 @@
 # summary: (re)generates list of projects
 # --------
 
-help(){
+help() {
 cat <<EOF
 $(bold ABOUT)
     $(bold "$FRAMEWORK_NAME $FRAMEWORK_VERSION")
@@ -18,8 +18,8 @@ $(bold EXAMPLE)
 EOF
 }
 
-init(){
-  option="${*}"
+init() {
+  option="$*"
   case "$option" in
     help)
       help
@@ -28,10 +28,8 @@ init(){
       _generate_list
       ;;
     * )
-    {
       help
       exit 1
-    }
       ;;
   esac
 }

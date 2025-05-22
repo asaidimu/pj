@@ -20,31 +20,26 @@ log(){
   echo "$out" >> $FRAMEWORK_LOGS
 }
 
-inquire(){
-  msg=$(label bold_blue "INPUT")
-  read -p "$msg $@? " answer
-  echo "$answer"
-}
-
 prompt(){
   echo "$(red "user@host:")$(blue "~")$ $@"
 }
 
-question(){
-  property=$1
-  default=$2
+question() {
+    property="$1"
+    default="$2"
 
-  prompt="$(echo `bold_grey  'question'`): $property"
+    prompt="$(echo `bold_grey  'question'`): $property"
 
-  [ -n "$default" ] && prompt="$prompt ($(blue "$default"))"
+    [ -n "$default" ] && prompt="$prompt ($(blue "$default"))"
 
-  prompt="$prompt: "
+    prompt="$prompt: "
 
-  read -p "$prompt" input
+    printf "%s" "$prompt"
+    read input
 
-  [ -z "$input" ] && input=$default
+    [ -z "$input" ] && input=$default
 
-  echo $input
+    echo "$input"
 }
 
 inform(){

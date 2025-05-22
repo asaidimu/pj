@@ -1,4 +1,4 @@
-set_flag(){
+set_flag() {
   case "$1" in
     --silent | -s)
       export FLAG_SILENT=1
@@ -15,7 +15,7 @@ set_flag(){
         exit
         ;;
     * )
-      return $ERROR_UNKNOWN_FLAG
+      return "$ERROR_UNKNOWN_FLAG"
       ;;
   esac
   return 0
