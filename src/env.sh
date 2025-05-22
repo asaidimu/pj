@@ -68,8 +68,3 @@ export ARCHIVE_PATH="$PROJECTS_DATA/archives"
 # check env
 # all variables need to be set !
 . "$UTILITIES_PATH/env_check.sh"
-
-# -- EXPECTED VARIABLES --
-# export PROJECTS_PATH=""
-# export PROJECT_FILE_PATH=""
-# export ARCHIVE_PATH=""

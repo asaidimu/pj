@@ -1,4 +1,4 @@
-[ -z "$DEBUG" ] && panic '4$DEBUG is not set!' 1
+[ -z "$DEBUG" ] && panic '$DEBUG is not set!' 1
 [ -z "$DEBUG_MODULE_NAME" ] && panic '$DEBUG_MODULE_NAME is not set!' 1
 
 [ -z "$ERROR" ] && panic '$ERROR is not set!' 1
