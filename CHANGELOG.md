@@ -1,3 +1,10 @@
+## [1.6.8](https://github.com/asaidimu/pj/compare/v1.6.7...v1.6.8) (2025-05-23)
+
+
+### Bug Fixes
+
+* **io:** simplify prompt handling with read -p ([76ae344](https://github.com/asaidimu/pj/commit/76ae3442bbf36d2d0927a2fa3bb0683d808184c3))
+
 ## [1.6.7](https://github.com/asaidimu/pj/compare/v1.6.6...v1.6.7) (2025-05-23)
 
 
