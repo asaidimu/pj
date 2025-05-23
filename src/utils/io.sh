@@ -34,8 +34,7 @@ question() {
 
     prompt="$prompt: "
 
-    printf "%s" "$prompt"
-    read input
+    read -p "$prompt" input
 
     [ -z "$input" ] && input=$default
 
