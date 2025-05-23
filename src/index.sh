@@ -77,14 +77,15 @@ _module_start() {
 _remove_flags() {
   log "checking flags"
 
-  arguments=()
+  arguments=""
   for arg in "$@"; do
-    if [ $status -eq $NOT_A_FLAG ]; then
-      arguments+=("$arg")
+    set_flag "$arg"
+    if [ "$?" -gt "0" ]; then
+        arguments="$arguments $arg"
     fi
   done
 
-  export FRAMEWORK_ARGUMENTS="${arguments[*]}"
+  export FRAMEWORK_ARGUMENTS="${arguments}"
 }
 
 # -- run_command --
