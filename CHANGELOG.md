@@ -1,3 +1,10 @@
+## [1.7.1](https://github.com/asaidimu/pj/compare/v1.7.0...v1.7.1) (2025-06-16)
+
+
+### Bug Fixes
+
+* **installer:** temporarily disable dependency pre-check ([16a1e9b](https://github.com/asaidimu/pj/commit/16a1e9bde80fe4f3cc022a11655f0104ee6ee156))
+
 # [1.7.0](https://github.com/asaidimu/pj/compare/v1.6.8...v1.7.0) (2025-06-16)
 
 
