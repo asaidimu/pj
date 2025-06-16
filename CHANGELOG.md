@@ -1,3 +1,10 @@
+# [1.7.0](https://github.com/asaidimu/pj/compare/v1.6.8...v1.7.0) (2025-06-16)
+
+
+### Features
+
+* **cli:** Add Zsh completion and installer improvements ([098d518](https://github.com/asaidimu/pj/commit/098d51892bbbf40329f988f5543986c3bce28071))
+
 ## [1.6.8](https://github.com/asaidimu/pj/compare/v1.6.7...v1.6.8) (2025-05-23)
 
 
