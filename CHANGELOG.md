@@ -1,3 +1,10 @@
+## [1.7.2](https://github.com/asaidimu/pj/compare/v1.7.1...v1.7.2) (2025-06-16)
+
+
+### Bug Fixes
+
+* **installer:** Make _repl function POSIX-compliant ([2df9d44](https://github.com/asaidimu/pj/commit/2df9d4479c669e60763f68160f4a391edf7dd201))
+
 ## [1.7.1](https://github.com/asaidimu/pj/compare/v1.7.0...v1.7.1) (2025-06-16)
 
 
