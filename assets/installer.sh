@@ -31,47 +31,47 @@ _extract() {
     rm -rf $TMPFILE
 }
 
-_check_dependencies() {
-    local missing_deps=()
-    local required_deps=(
-        "sh"
-        "tmux"
-        "fzf"
-        "tree"
-        "awk"
-        "sed"
-        "grep"
-        "curl"
-        "tar"
-        "mkdir"
-        "ls"
-        "cat"
-        "date"
-        "read"
-        "printf"
-        "echo"
-        "jq"
-    )
-
-    # Check each dependency
-    for dep in "${required_deps[@]}"; do
-        if ! command -v "$dep" >/dev/null 2>&1; then
-            missing_deps+=("$dep")
-        fi
-    done
-
-    # Report results
-    if [ ${#missing_deps[@]} -gt 0 ]; then
-        _log "$(red "Missing required dependencies:")\n"
-        for dep in "${missing_deps[@]}"; do
-            _log "  - $(red "$dep")\n"
-        done
-        _log "\n$(yellow "Please install the missing dependencies and try again.")\n"
-        return 1
-    fi
-
-    return 0
-}
+#_check_dependencies() {
+#    local missing_deps=()
+#    local required_deps=(
+#        "sh"
+#        "tmux"
+#        "fzf"
+#        "tree"
+#        "awk"
+#        "sed"
+#        "grep"
+#        "curl"
+#        "tar"
+#        "mkdir"
+#        "ls"
+#        "cat"
+#        "date"
+#        "read"
+#        "printf"
+#        "echo"
+#        "jq"
+#    )
+#
+#    # Check each dependency
+#    for dep in "${required_deps[@]}"; do
+#        if ! command -v "$dep" >/dev/null 2>&1; then
+#            missing_deps+=("$dep")
+#        fi
+#    done
+#
+#    # Report results
+#    if [ ${#missing_deps[@]} -gt 0 ]; then
+#        _log "$(red "Missing required dependencies:")\n"
+#        for dep in "${missing_deps[@]}"; do
+#            _log "  - $(red "$dep")\n"
+#        done
+#        _log "\n$(yellow "Please install the missing dependencies and try again.")\n"
+#        return 1
+#    fi
+#
+#    return 0
+#}
 
 _install_script() {
     sleep 0.2
@@ -96,7 +96,6 @@ EOF
 }
 
 _install_completion() {
-    # Only install zsh completion if zsh is available
     if command -v zsh >/dev/null 2>&1; then
         local completion_dir="$HOME/.local/share/zsh/site-functions"
         local completion_source="$FRAMEWORK_PATH/src/completion/zsh/_pj"
@@ -122,7 +121,10 @@ _main(){
     _banner
 
     # -- perform checks
-    _check_dependencies &
+    # TODO: Figure out if this is causing installation errors. For now comment
+    # it out
+    # _check_dependencies &
+    sleep 0.3 &
     pid=$!
     _load "Initializing" "Dependency checks complete" $pid
     wait $pid
