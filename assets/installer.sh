@@ -164,7 +164,17 @@ _main(){
 
 # ---------------------------------------------------------------------------- #
 
-_repl() { printf "$1"'%.s' $(eval "echo {1.."$(($2))"}"); }
+_repl() {
+    local char="$1"
+    local count="$2"
+    local result=""
+    local i=0
+    while [ $i -lt $count ]; do
+        result="${result}${char}"
+        i=$((i + 1))
+    done
+    printf "%s" "$result"
+}
 
 _label(){
   color="$1"
