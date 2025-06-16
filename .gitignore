@@ -246,3 +246,4 @@ build
 install.sh
 
 .session.vim
+.commit-message.md

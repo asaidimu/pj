@@ -31,6 +31,48 @@ _extract() {
     rm -rf $TMPFILE
 }
 
+_check_dependencies() {
+    local missing_deps=()
+    local required_deps=(
+        "sh"
+        "tmux"
+        "fzf"
+        "tree"
+        "awk"
+        "sed"
+        "grep"
+        "curl"
+        "tar"
+        "mkdir"
+        "ls"
+        "cat"
+        "date"
+        "read"
+        "printf"
+        "echo"
+        "jq"
+    )
+
+    # Check each dependency
+    for dep in "${required_deps[@]}"; do
+        if ! command -v "$dep" >/dev/null 2>&1; then
+            missing_deps+=("$dep")
+        fi
+    done
+
+    # Report results
+    if [ ${#missing_deps[@]} -gt 0 ]; then
+        _log "$(red "Missing required dependencies:")\n"
+        for dep in "${missing_deps[@]}"; do
+            _log "  - $(red "$dep")\n"
+        done
+        _log "\n$(yellow "Please install the missing dependencies and try again.")\n"
+        return 1
+    fi
+
+    return 0
+}
+
 _install_script() {
     sleep 0.2
 cat > $FRAMEWORK_BINARY << EOF
@@ -53,13 +95,38 @@ EOF
     fi
 }
 
+_install_completion() {
+    # Only install zsh completion if zsh is available
+    if command -v zsh >/dev/null 2>&1; then
+        local completion_dir="$HOME/.local/share/zsh/site-functions"
+        local completion_source="$FRAMEWORK_PATH/src/completion/zsh/_pj"
+        local completion_target="$completion_dir/_pj"
+        # Create completion directory if it doesn't exist
+        mkdir -p "$completion_dir"
+        # Remove existing symlink/file if it exists
+        if [ -e "$completion_target" ] || [ -L "$completion_target" ]; then
+            rm -f "$completion_target"
+        fi
+        # Create symlink to completion file
+        if [ -f "$completion_source" ]; then
+            ln -sf "$completion_source" "$completion_target"
+            return 0
+        else
+            return 1
+        fi
+    fi
+    return 0  # Not an error if zsh isn't available
+}
+
 _main(){
     _banner
 
-    # --perfom checks
-    sleep 0.3 &
+    # -- perform checks
+    _check_dependencies &
     pid=$!
     _load "Initializing" "Dependency checks complete" $pid
+    wait $pid
+    [ $? -ne 0 ] && _abort
 
     # -- clean up --
     _clean &
@@ -81,6 +148,12 @@ _main(){
     _load "Installing script" "Script installed at $(blue $FRAMEWORK_BINARY)" $pid
     wait $pid
     [ $? -ne 0 ] && _abort
+
+    # -- install completion --
+    _install_completion &
+    pid=$!
+    _load "Installing completions" "Zsh completion installed" $pid
+    wait $pid
 
     _log "Installed  $(bold $(blue "$FRAMEWORK_NAME-$FRAMEWORK_VERSION"))\n"
     _log "Run ${FRAMEWORK_NAME} to get started.\n"

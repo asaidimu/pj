@@ -1,4 +1,4 @@
-set_flag() {
+parse_flag() {
   case "$1" in
     -s|--silent)
       export FLAG_SILENT=1
@@ -10,11 +10,11 @@ set_flag() {
       ;;
     -h|--help)
       global_help
-      return 0
+      exit
       ;;
     -v|--version)
       show_version
-      return 0
+      exit
       ;;
     *)
       return $NOT_A_FLAG

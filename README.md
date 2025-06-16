@@ -1,4 +1,4 @@
-# PJ: A POSIX Terminal Project Manager Framework
+# Project Juggler: A POSIX Terminal Project Manager Framework
 
 ![banner](https://raw.githubusercontent.com/asaidimu/pj/main/banner.png?raw=true)
 

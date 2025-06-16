@@ -4,6 +4,7 @@
 
 list() {
   path="$1"
+  [ -d $path ] || return
   for recipe in $(ls "$path"); do
     sum=$(grep "DESCRIPTION" "$path/$recipe" | sed -E "s/^.*:\s//g")
     echo "$recipe:$sum" | awk -F':' '{printf "    %-10s --   %s\n", $1, $2}'
@@ -80,7 +81,7 @@ parse_args() {
 
 init() {
   unset -f init
-  parse_args "$@" && . "$PROJECT_PLUGIN" || exit 0
+  parse_args "$@" && . "$PROJECT_PLUGIN"
 }
 
 init "$@"

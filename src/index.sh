@@ -13,6 +13,7 @@ EOF_ABOUT
 )
 
 # Helper to run hooks: run core first, then user (if both exist)
+# TODO: Make this function work
 _run_hook() {
   cmd="$1"
   hook_name="$2"
@@ -79,7 +80,7 @@ _remove_flags() {
 
   arguments=""
   for arg in "$@"; do
-    set_flag "$arg"
+    parse_flag "$arg"
     if [ "$?" -gt "0" ]; then
         arguments="$arguments $arg"
     fi

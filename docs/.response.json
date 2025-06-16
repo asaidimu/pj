@@ -1,0 +1,1405 @@
+{
+  "classification": {
+    "primaryType": "Command-line Tool",
+    "confidence": 0.95,
+    "characteristics": [
+      "CLI",
+      "Modular",
+      "Extensible",
+      "Project Management",
+      "POSIX Compliant",
+      "Tmux Integration",
+      "Fuzzy Search"
+    ],
+    "adaptations": [
+      "Configuration via environment variables",
+      "Plugin/Recipe system for extensibility",
+      "Uses standard Unix tools for core functionality",
+      "Supports pre and post command lifecycle hooks"
+    ]
+  },
+  "introduction": "PJ (Project Juggler) is a modular, scriptable, and POSIX-compliant project management framework designed for the terminal. It simplifies developer workflows by integrating with essential tools like tmux and fzf. Adhering to the Unix philosophy, PJ provides a lightweight yet powerful way to manage projects, from creation and organization to archiving and deletion. Its extensible design allows users to create custom commands and project templates, making it highly adaptable to various development environments and personal preferences.",
+  "sections": [
+    {
+      "title": "Getting Started",
+      "path": "getting-started/index.md",
+      "content": "### Overview\nPJ is a command-line utility that streamlines common project management tasks within the terminal. It helps you quickly open projects in dedicated tmux sessions, create new projects from customizable templates (recipes), and manage project lifecycles (archive, delete, list). PJ is designed to be lean, fast, and highly customizable through shell scripts and environment variables.\n\n### Core Concepts\n*   **Projects**: Any directory managed by PJ, typically located under `$PROJECTS_PATH`.\n*   **Recipes**: Templates used by the `new` command to scaffold new projects.\n*   **Plugins**: Custom commands or extensions that can be added to PJ.\n*   **Tmux Sessions**: PJ leverages tmux to provide isolated and persistent terminal environments for each project, enhancing productivity.\n*   **Fuzzy Selection**: Integrated with `fzf` for quick and intuitive selection of projects.\n\n### Architecture\nPJ follows a modular architecture. The core logic resides in POSIX-compliant shell scripts. Commands are implemented as modules, allowing for easy extension and overriding. Configuration and custom assets are stored in a user-specific directory (`~/.config/pj/`), ensuring no system files are modified during installation or operation.\n\n### Quick Setup Guide\nPJ is installed to your user directory without requiring root privileges. The installer script handles all necessary setup, including placing the `pj` binary in `~/.local/bin` and setting up required configuration directories.\n\n#### Prerequisites\nBefore installation, ensure you have the following standard Unix tools installed. PJ will check for these and notify you if any are missing:\n\n*   `sh` (POSIX shell)\n*   `tmux`\n*   `fzf`\n*   `tree`\n*   `awk`\n*   `sed`\n*   `grep`\n*   `curl`\n*   `tar`\n*   `mkdir`\n*   `ls`\n*   `cat`\n*   `date`\n*   `read`\n*   `printf`\n*   `echo`\n*   `jq`\n\n#### Installation Steps\nTo install PJ, run the following command in your terminal. This script is idempotent, meaning you can run it multiple times without adverse effects.\n\n```sh\nsh <(curl -fsSL https://github.com/asaidimu/pj/releases/download/latest/install.sh)\n```\n\nUpon successful installation, PJ will be available as the `pj` command in your terminal, provided `~/.local/bin` is in your `PATH`.\n\n### First Tasks with Decision Patterns\n\n#### 1. Open an Existing Project\nIf you have an existing project directory, you can open it with PJ. PJ will attempt to find projects in `$HOME/projects` by default, or any path defined by `PROJECTS_PATH` in `~/.config/pj/env.sh`.\n\n```sh\npj open\n```\n\nThis command will open an interactive fuzzy finder. Select your project from the list, and PJ will create or attach to a `tmux` session for it. If a `.pj` or `.project` script exists in your project's root, it will be executed to set up the session.\n\n#### 2. Create a New Project\nTo create a new project, use the `new` command with a recipe and your desired project name:\n\n```sh\npj new base my-new-project\n```\n\nThis command creates a new directory `my-new-project` inside your `PROJECTS_PATH` using the default 'base' recipe. Recipes are simple scripts that scaffold your project's initial structure.",
+      "agentGuidance": {
+        "decisionPoints": [
+          "IF user_goal == \"install_pj\" THEN execute_shell_command(\"sh <(curl -fsSL https://github.com/asaidimu/pj/releases/download/latest/install.sh)\") ELSE continue_to_manual_setup",
+          "IF project_exists_locally THEN execute_command(\"pj open\") ELSE execute_command(\"pj new <recipe> <project-name>\")"
+        ],
+        "verificationSteps": [
+          "Check: `command -v pj` → Expected: `pj` executable path",
+          "Check: `pj help` → Expected: PJ help message",
+          "Check: `tmux ls` after `pj open <project>` → Expected: `tmux` session named after project basename"
+        ],
+        "quickPatterns": [
+          "Pattern: `sh <(curl -fsSL https://github.com/asaidimu/pj/releases/download/latest/install.sh)` - Install/Update PJ",
+          "Pattern: `pj open` - Interactively open a project",
+          "Pattern: `pj new base my-first-project` - Create a new project with 'base' recipe"
+        ],
+        "diagnosticPaths": [
+          "Error: MissingDependency -> Symptom: Installation script fails with 'missing required dependencies' -> Check: `command -v <dependency>` for listed missing tools -> Fix: Install missing dependencies using system package manager (e.g., `sudo apt-get install tmux fzf`)"
+        ]
+      }
+    },
+    {
+      "title": "Core Operations",
+      "path": "core-operations/index.md",
+      "content": "This section details the primary commands for managing your projects with PJ.\n\n### `pj open`\n**Description**: Initializes the environment for a project. It allows you to select a project using a fuzzy finder (`fzf`) and then creates or attaches to a dedicated `tmux` session for that project. It can also execute project-specific setup scripts.\n\n**Usage**: `pj open [refresh|help]`\n\n**Arguments**:\n*   `refresh`: Regenerates the list of available projects before opening the fuzzy selector.\n*   `help`: Displays help for the `open` command.\n\n**Workflow**:\n1.  If `refresh` is specified, the project list is regenerated.\n2.  A fuzzy selector (powered by `fzf`) is presented, listing project paths. You select a project.\n3.  PJ determines a `tmux` session name from the selected project's basename.\n4.  If a `tmux` session with that name does not exist, a new one is created in the project directory.\n5.  If present, a `.pj` or (deprecated) `.project` executable script in the project root is run inside the `tmux` session to perform custom setup.\n6.  If present, a `.env` file in the project root (key-value pairs) is sourced to set environment variables for the session.\n7.  You are attached to (or switched to, if already in `tmux`) the project's `tmux` session.\n\n**Example**:\n```sh\npj open\n# (Interactive fuzzy selection)\n\npj open refresh\n```\n\n### `pj new`\n**Description**: Creates a new project folder from a specified recipe (template) in your projects directory (`$PROJECTS_PATH`).\n\n**Usage**: `pj new <recipe> <project-name> [-o|--overwrite]`\n\n**Arguments**:\n*   `<recipe>` (Required): The name of the recipe to use (e.g., `base`). Recipes are executable scripts that define the project structure.\n*   `<project-name>` (Required): The name of the new project directory.\n*   `-o`, `--overwrite` (Optional): If provided, PJ will overwrite an existing project with the same name.\n\n**Workflow**:\n1.  PJ checks for the existence of the specified recipe (first in custom recipes, then in inbuilt ones).\n2.  If `<recipe>` is omitted but `<project-name>` is given, the `base` recipe is used by default.\n3.  If a project with `<project-name>` already exists and `-o` is not used, an error is triggered.\n4.  The selected recipe script is executed, creating the new project directory and its initial contents.\n5.  A post-hook (`src/module/new/post_hook.sh`) is automatically run to refresh the project list.\n\n**Example**:\n```sh\npj new base my-new-app\npj new my-custom-recipe another-project -o\n```\n\n### `pj archive`\n**Description**: Compresses a specified project folder into a `.tar.xz` archive and saves it to the PJ archives directory (`$PROJECTS_PATH/.pj/archives`).\n\n**Usage**: `pj archive <project-name>`\n\n**Arguments**:\n*   `<project-name>` (Required): The name of the project to archive.\n\n**Workflow**:\n1.  PJ verifies that the specified project exists.\n2.  A timestamped `.tar.xz` archive of the project directory is created.\n3.  The archive is saved under `$PROJECTS_PATH/.pj/archives/`.\n\n**Example**:\n```sh\npj archive old-project\n```\n\n### `pj delete`\n**Description**: Permanently deletes a project folder from your projects directory. This action is irreversible and requires confirmation.\n\n**Usage**: `pj delete <project-name>`\n\n**Arguments**:\n*   `<project-name>` (Required): The name of the project to delete.\n\n**Workflow**:\n1.  PJ verifies that the specified project exists.\n2.  A warning is displayed, and you are prompted to type a randomly generated keyword for confirmation.\n3.  If the keyword matches, the project directory and all its contents are recursively deleted.\n\n**Example**:\n```sh\npj delete temp-project\n# (You will be prompted to confirm deletion)\n```\n\n### `pj list`\n**Description**: Lists all active project folders located under your configured projects path (`$PROJECTS_PATH`).\n\n**Usage**: `pj list`\n\n**Example**:\n```sh\npj list\n# Expected Output:\n# project1\n# project2\n# my-new-app\n```\n\n### `pj refresh`\n**Description**: Regenerates the internal list of projects. This is useful if you manually add or remove projects from `$PROJECTS_PATH` outside of PJ's `new` or `delete` commands.\n\n**Usage**: `pj refresh`\n\n**Example**:\n```sh\npj refresh\n```\n\n### `pj update`\n**Description**: Upgrades PJ to the latest available version by downloading and running the latest installer script from the GitHub releases.\n\n**Usage**: `pj update`\n\n**Workflow**:\n1.  PJ checks for the latest release on GitHub.\n2.  If a newer version is available, the latest installation script is downloaded.\n3.  The downloaded script is executed to update PJ's core files.\n4.  The version string in the main `pj` executable is updated.\n\n**Example**:\n```sh\npj update\n```",
+      "agentGuidance": {
+        "decisionPoints": [
+          "IF command == \"open\" AND arg == \"refresh\" THEN call_method(\"_generate_list\") ELSE continue",
+          "IF command == \"new\" AND project_exists(project_name) AND overwrite_flag_not_set THEN throw_error(\"ERROR_PROJECT_EXISTS\") ELSE continue",
+          "IF command == \"delete\" AND user_confirmation_matches(keyword) THEN call_method(\"rm -rf project_path\") ELSE inform_user(\"incorrect input, aborted\")"
+        ],
+        "verificationSteps": [
+          "Check: `pj open` prompts with fzf selection → Expected: Interactive list of projects",
+          "Check: `ls $PROJECTS_PATH/my-new-app` after `pj new base my-new-app` → Expected: Directory exists",
+          "Check: `ls $PROJECTS_PATH/.pj/archives/` after `pj archive old-project` → Expected: `.tar.xz` archive file exists",
+          "Check: `pj list` → Expected: Shows currently managed project names",
+          "Check: `pj update` output → Expected: \"Upgraded to <new_version>\" or \"Already at latest version\""
+        ],
+        "quickPatterns": [
+          "Pattern: `pj open`",
+          "Pattern: `pj new base my-project`",
+          "Pattern: `pj archive my-old-project`",
+          "Pattern: `pj delete my-temp-project`",
+          "Pattern: `pj list`",
+          "Pattern: `pj update`"
+        ],
+        "diagnosticPaths": [
+          "Error: CommandNotFound -> Symptom: Shell reports 'command not found' -> Check: `command -v pj` and `echo $PATH` -> Fix: Ensure `~/.local/bin` is in PATH, reinstall PJ if necessary.",
+          "Error: ProjectNotFound -> Symptom: `pj archive` or `pj delete` fails with 'project not found' -> Check: `ls $PROJECTS_PATH/<project-name>` -> Fix: Provide correct project name or verify project existence.",
+          "Error: UpdateFailed -> Symptom: `pj update` reports 'could not update framework' -> Check: Network connectivity, `curl` and `jq` installation -> Fix: Resolve network issues, ensure dependencies are installed, or try manual installation."
+        ]
+      }
+    },
+    {
+      "title": "Task-Based Guide",
+      "path": "task-based-guide/index.md",
+      "content": "This guide provides practical steps for common tasks you'll perform with PJ.\n\n### 1. Managing Projects\n\n#### Creating a New Project\nTo start a new project, use the `new` command with a recipe. The `base` recipe is a good starting point.\n\n**Steps**:\n1.  Decide on your project name (e.g., `my-cool-project`).\n2.  Choose a recipe. If unsure, use `base`.\n3.  Execute the command:\n    ```sh\n    pj new base my-cool-project\n    ```\n\n#### Opening a Project in Tmux\nPJ makes it easy to jump into your project's environment.\n\n**Steps**:\n1.  Simply run the `open` command:\n    ```sh\n    pj open\n    ```\n2.  An interactive `fzf` menu will appear. Start typing to filter projects.\n3.  Select your project using `Tab` or `Arrow` keys and press `Enter`.\n4.  PJ will open (or attach to) a `tmux` session for that project.\n\n#### Archiving a Project\nWhen a project is no longer active but you want to keep a backup, archive it.\n\n**Steps**:\n1.  Identify the project you wish to archive (e.g., `old-legacy-app`).\n2.  Run the `archive` command:\n    ```sh\n    pj archive old-legacy-app\n    ```\n3.  The project will be compressed and moved to `$HOME/projects/.pj/archives/` (or your custom `PROJECTS_DATA/archives`).\n\n#### Deleting a Project\nUse extreme caution with this command as it permanently removes your project.\n\n**Steps**:\n1.  Identify the project to delete (e.g., `temp-scratchpad`).\n2.  Run the `delete` command:\n    ```sh\n    pj delete temp-scratchpad\n    ```\n3.  PJ will ask for a confirmation keyword. Carefully read the prompt and type the exact keyword to proceed.\n4.  If confirmed, the project directory is deleted.\n\n### 2. Customizing PJ\n\n#### Setting a Custom Projects Path\nBy default, PJ looks for projects in `~/projects`. You can change this.\n\n**Steps**:\n1.  Create or edit `~/.config/pj/env.sh`.\n2.  Add or modify the `PROJECTS_PATH` variable:\n    ```sh\n    # ~/.config/pj/env.sh\n    export PROJECTS_PATH=\"$HOME/dev/my-workspaces\"\n    ```\n3.  Save the file. The change takes effect on the next `pj` command run.\n\n#### Creating a Custom Recipe\nRecipes are powerful for quickly scaffolding new projects with specific structures or boilerplate.\n\n**Steps**:\n1.  Create a new executable file (without an extension) in `~/.config/pj/plugins/recipes/`. For example, create `~/.config/pj/plugins/recipes/my-web-app`.\n2.  Add your shell script logic to this file. The script will receive the project path as its first argument (`$1`).\n    ```sh\n    #!/bin/sh\n    # ~/.config/pj/plugins/recipes/my-web-app\n    PROJECT_PATH=\"$1\"\n    mkdir -p \"$PROJECT_PATH/src\"\n    mkdir -p \"$PROJECT_PATH/public\"\n    echo \"# My Web App\" > \"$PROJECT_PATH/README.md\"\n    echo \"<!DOCTYPE html>\\n<html><head><title>Hello</title></head><body><h1>Hello, World!</h1></body></html>\" > \"$PROJECT_PATH/public/index.html\"\n    ```\n3.  Make the recipe executable:\n    ```sh\n    chmod +x ~/.config/pj/plugins/recipes/my-web-app\n    ```\n4.  Now, use your custom recipe:\n    ```sh\n    pj new my-web-app my-new-website\n    ```\n\n### 3. Troubleshooting\n\n#### Missing Required Dependencies\nIf PJ reports missing dependencies during installation or runtime, you'll need to install them using your system's package manager.\n\n**Steps**:\n1.  Note the missing dependency reported by PJ (e.g., `fzf`).\n2.  Use your OS's package manager to install it:\n    *   **Debian/Ubuntu**: `sudo apt install <dependency>`\n    *   **Fedora/RHEL**: `sudo dnf install <dependency>`\n    *   **macOS (Homebrew)**: `brew install <dependency>`\n3.  Retry the PJ command.\n\n#### Permissions Issues\nIf your custom plugins or recipes aren't working, ensure they have execute permissions.\n\n**Steps**:\n1.  Navigate to the directory of your custom plugin or recipe (e.g., `~/.config/pj/plugins/myplugin/index.sh` or `~/.config/pj/plugins/recipes/myrecipe`).\n2.  Grant execute permissions:\n    ```sh\n    chmod +x <path_to_script>\n    ```\n\n#### Checking Logs\nPJ writes verbose logs to a temporary directory, which can be helpful for debugging.\n\n**Steps**:\n1.  Check the log file located at `/tmp/$USER/pj/<current_date>.log`.\n    ```sh\n    cat /tmp/$USER/pj/$(date +\"%d_%m\").log\n    ```\n2.  Look for `ERROR` or `WARN` messages that might indicate the cause of the issue.",
+      "agentGuidance": {
+        "decisionPoints": [
+          "IF task == \"create_project\" THEN prompt_user(\"Enter project name and recipe (e.g., base)\") AND execute_command(\"pj new <recipe> <project-name>\")",
+          "IF task == \"open_project\" THEN execute_command(\"pj open\") AND monitor_fzf_selection",
+          "IF task == \"customize_projects_path\" THEN create_or_edit_file(\"~/.config/pj/env.sh\", \"export PROJECTS_PATH=\\\"/path/to/projects\\\"\")",
+          "IF task == \"create_custom_recipe\" THEN create_file(\"~/.config/pj/plugins/recipes/<recipe-name>\") AND chmod_plus_x(\"~/.config/pj/plugins/recipes/<recipe-name>\")"
+        ],
+        "verificationSteps": [
+          "Check: `ls $PROJECTS_PATH/<new-project-name>` after creation → Expected: Directory exists with recipe content",
+          "Check: `tmux has-session -t <project-basename>` after `pj open` → Expected: Exit code 0 (session exists)",
+          "Check: `ls -l ~/.config/pj/plugins/recipes/my-recipe` permissions → Expected: `rwx` for owner",
+          "Check: `cat /tmp/$USER/pj/$(date +\"%d_%m\").log | grep ERROR` → Expected: No errors for successful operations"
+        ],
+        "quickPatterns": [
+          "Pattern: `pj new base my-project`",
+          "Pattern: `pj open`",
+          "Pattern: `export PROJECTS_PATH=\"$HOME/dev/projects\"` in `~/.config/pj/env.sh`",
+          "Pattern: `chmod +x ~/.config/pj/plugins/recipes/my-recipe`"
+        ],
+        "diagnosticPaths": [
+          "Error: ProjectCreationFailure -> Symptom: `pj new` fails, project directory not created -> Check: Recipe script content for errors, permissions of recipe file -> Fix: Debug recipe script, ensure it's executable and correct."
+        ]
+      }
+    },
+    {
+      "title": "Advanced Usage",
+      "path": "advanced-usage/index.md",
+      "content": "This section covers more advanced features of PJ, including its extensibility mechanisms.\n\n### Custom Plugins (Commands)\nPJ's modular design allows you to create your own commands that integrate seamlessly with the framework.\n\n#### Structure\nCustom plugins are simple shell scripts placed in `~/.config/pj/plugins/<your-command-name>/index.sh`. They must be executable.\n\n**Example**: `~/.config/pj/plugins/hello/index.sh`\n```sh\n#!/bin/sh\n\n# summary: Says hello from custom plugin\n\nhelp() {\n  cat <<EOF\n$(bold \"COMMAND\"): $(blue hello)\n    Says hello from your custom plugin.\n\n$(bold USAGE)\n    pj hello\nEOF\n}\n\ninit() {\n  case \"$1\" in\n    help)\n      help\n      ;;\n    *)\n      printf \"Hello from custom plugin!\\n\"\n      ;;\n  esac\n}\n\ninit \"$@\"\n```\n\nAfter creating the file, make it executable:\n```sh\nchmod +x ~/.config/pj/plugins/hello/index.sh\n```\nNow you can run it:\n```sh\npj hello\n```\n\n#### Plugin Precedence\nIf a custom plugin has the same name as a core PJ command (e.g., `pj open`), the custom plugin in `~/.config/pj/plugins/` will take precedence.\n\n### Custom Recipes\nExtend the `pj new` command's capabilities by adding your own project templates. Recipes are just executable shell scripts.\n\n#### Structure\nCustom recipes are executable files (without extensions) located in `~/.config/pj/plugins/recipes/`.\n\n**Example**: `~/.config/pj/plugins/recipes/python-flask`\n```sh\n#!/bin/sh\n# summary: Creates a basic Python Flask project\n\nPROJECT_PATH=\"$1\"\n\nmkdir -p \"$PROJECT_PATH\"\ncd \"$PROJECT_PATH\"\n\necho \"# My Flask Project\" > README.md\n\ncat <<EOL > app.py\nfrom flask import Flask\napp = Flask(__name__)\n\n@app.route('/')\ndef hello_world():\n    return 'Hello, World!'\n\nif __name__ == '__main__':\n    app.run(debug=True)\nEOL\n\npython3 -m venv venv\nsuccess \"Python Flask project created at $PROJECT_PATH\"\n```\n\nMake the recipe executable:\n```sh\nchmod +x ~/.config/pj/plugins/recipes/python-flask\n```\nThen use it:\n```sh\npj new python-flask my-flask-app\n```\n\n### Custom Project List Generator\nYou can override how PJ discovers projects by providing your own `generator` script.\n\n#### Structure\nPlace an executable script at `~/.config/pj/plugins/generator`.\n\n**Example**: `~/.config/pj/plugins/generator`\n```sh\n#!/bin/sh\n# Outputs project paths, one per line\n\nfind \"$HOME/personal-code\" -maxdepth 1 -type d -name \"*proj\" >> \"$PROJECTS_LIST\"\nfind \"$HOME/work/client-projects\" -maxdepth 1 -type d -name \"*\" >> \"$PROJECTS_LIST\"\n```\n\nMake it executable:\n```sh\nchmod +x ~/.config/pj/plugins/generator\n```\nPJ will now use this script when `pj open` or `pj refresh` is called.\n\n### Command Lifecycle Hooks\nPJ provides `pre_hook.sh` and `post_hook.sh` scripts that can be executed before and after a command's main `index.sh` script, respectively.\n\n#### `pre_hook.sh`\nRuns before the main command logic. Useful for pre-checks, logging, or modifying arguments.\n\n**Location**: `src/module/<command>/pre_hook.sh` or `~/.config/pj/plugins/<command>/pre_hook.sh`.\n**Arguments**: Receives all arguments passed to the main command.\n\n#### `post_hook.sh`\nRuns after the main command logic, regardless of success or failure. Useful for cleanup, logging, or triggering subsequent actions.\n\n**Location**: `src/module/<command>/post_hook.sh` or `~/.config/pj/plugins/<command>/post_hook.sh`.\n**Arguments**: Receives all original arguments passed to the main command.\n\n**Example**: Auto-refreshing project list after `pj new` (from `src/module/new/post_hook.sh`)\n```sh\n#!/bin/sh\nrun_command refresh\nexit 0\n```\nThis ensures that newly created projects are immediately available for fuzzy selection without manual `pj refresh`.\n\n### Environment Variables\nBeyond `PROJECTS_PATH`, you can override many internal PJ variables by setting them in `~/.config/pj/env.sh`.\n\n**Common variables to override:**\n*   `PLUGINS_PATH`, `RECIPES_PATH`: Change where PJ looks for core plugins/recipes (advanced use).\n*   `FRAMEWORK_LOGS`: Customize the log file path.\n*   `FLAG_COLORED_OUTPUT`: Disable colored output by setting to `1`.\n\n**Example `~/.config/pj/env.sh`**:\n```sh\nexport PROJECTS_PATH=\"$HOME/my_dev_projects\"\nexport FRAMEWORK_LOGS=\"$HOME/pj_activity.log\"\nexport FLAG_COLORED_OUTPUT=1 # Disables colors in output\n```",
+      "agentGuidance": {
+        "decisionPoints": [
+          "IF extending_command_behavior THEN create_file(\"~/.config/pj/plugins/<command>/pre_hook.sh\") OR create_file(\"~/.config/pj/plugins/<command>/post_hook.sh\")",
+          "IF overriding_project_discovery THEN create_executable_script(\"~/.config/pj/plugins/generator\") that_outputs_paths",
+          "IF global_config_change_required THEN edit_file(\"~/.config/pj/env.sh\")"
+        ],
+        "verificationSteps": [
+          "Check: `pj hello` after creating custom plugin → Expected: \"Hello from custom plugin!\"",
+          "Check: `ls $PROJECTS_PATH/my-flask-app/app.py` after `pj new python-flask my-flask-app` → Expected: File exists with Flask code",
+          "Check: `pj open` list contains projects from custom generator paths → Expected: Projects from `find \"$HOME/personal-code\"` are listed.",
+          "Check: `cat /tmp/$USER/pj/<date>.log` after hook execution → Expected: Log entries from hook script"
+        ],
+        "quickPatterns": [
+          "Pattern: Custom Plugin: `mkdir -p ~/.config/pj/plugins/mycmd && echo '#!/bin/sh\\ninit(){ printf \"Hello\\n\"; }\\ninit \"$@\"' > ~/.config/pj/plugins/mycmd/index.sh && chmod +x ~/.config/pj/plugins/mycmd/index.sh`",
+          "Pattern: Custom Recipe: `echo '#!/bin/sh\\nmkdir \"$1\"' > ~/.config/pj/plugins/recipes/myrecipe && chmod +x ~/.config/pj/plugins/recipes/myrecipe`",
+          "Pattern: Set Env Var: `echo 'export MY_VAR=\"value\"' >> ~/.config/pj/env.sh`"
+        ],
+        "diagnosticPaths": [
+          "Error: HookNotExecuting -> Symptom: Hook script not running -> Check: Hook file path, execute permissions, `_run_hook` call in `src/index.sh` -> Fix: Correct path, `chmod +x`, verify `_run_hook` logic.",
+          "Error: CustomGeneratorNotUsed -> Symptom: `pj open` lists default paths -> Check: `~/.config/pj/plugins/generator` existence and execute permissions -> Fix: Ensure file exists and is executable."
+        ]
+      }
+    },
+    {
+      "title": "Problem Solving",
+      "path": "problem-solving/index.md",
+      "content": "This section provides guidance on diagnosing and resolving common issues encountered while using PJ.\n\n### General Troubleshooting Steps\n1.  **Check Dependencies**: Ensure all [required dependencies](#dependencies) are installed and accessible in your `PATH`.\n2.  **Verify Paths**: Double-check `PROJECTS_PATH` in `~/.config/pj/env.sh` and ensure project directories exist at expected locations.\n3.  **Check Permissions**: Custom plugins, recipes, and the `pj` executable itself must have execute permissions (`chmod +x`).\n4.  **Review Logs**: PJ generates detailed logs at `/tmp/$USER/pj/$(date +\"%d_%m\").log`. These logs often contain error messages or warnings that can pinpoint the issue.\n5.  **Run with `DEBUG=1`**: Temporarily set `export DEBUG=1` in your shell before running a `pj` command to enable verbose debug output. This can reveal internal execution flow and variable states.\n\n### Error Reference\nPJ uses specific error codes for different failure conditions. Refer to the [Errors](#errors) section in the full reference for details on specific error types and their resolutions.\n\n#### Common Issues & Solutions\n*   **Command not found**: If `pj` command itself is not found, ensure `~/.local/bin` is in your shell's `PATH` environment variable. If it's not, you may need to add `export PATH=\"$HOME/.local/bin:$PATH\"` to your `~/.bashrc`, `~/.zshrc`, or equivalent startup file.\n*   **Project not found for `archive` or `delete`**: Ensure the project name you are providing exactly matches a directory name under your `PROJECTS_PATH`.\n*   **`tmux` session not created**: Check if `tmux` is installed and running correctly. Also, verify if the project's `.pj` or `.project` script is interfering with session creation.\n*   **Custom plugin/recipe not working**: Ensure the script file has `#!/bin/sh` as the first line, is executable (`chmod +x`), and is placed in the correct `~/.config/pj/plugins/` or `~/.config/pj/plugins/recipes/` directory.\n*   **Update failed (`pj update`)**: Verify internet connectivity and ensure `curl` and `jq` are installed and working. Sometimes, a full reinstall (`sh <(curl...)`) might be necessary if the update mechanism itself is corrupted.\n\nIf you're still facing issues, consider reporting them on the [GitHub Issues page](https://github.com/asaidimu/pj/issues) with detailed reproduction steps and log output.",
+      "agentGuidance": {
+        "decisionPoints": [
+          "IF problem_identified THEN consult_reference_errors_section",
+          "IF `pj` command not found THEN check_path_variable",
+          "IF custom_script_failure THEN check_script_permissions",
+          "IF debugging_complex_issue THEN enable_debug_mode_and_review_logs"
+        ],
+        "verificationSteps": [
+          "Check: `echo $PATH` → Expected: `~/.local/bin` included",
+          "Check: `chmod +x <script_path>` → Expected: File permissions updated",
+          "Check: `cat /tmp/$USER/pj/$(date +\"%d_%m\").log` for `ERROR` or `WARN` messages",
+          "Check: `DEBUG=1 pj <command>` output for verbose trace"
+        ],
+        "quickPatterns": [
+          "Pattern: `export PATH=\"$HOME/.local/bin:$PATH\"` (for shell startup file)",
+          "Pattern: `chmod +x ~/.config/pj/plugins/myplugin/index.sh`",
+          "Pattern: `DEBUG=1 pj new base test-project`"
+        ],
+        "diagnosticPaths": [
+          "Error: CommandExecutionFailure -> Symptom: `pj` command produces unexpected output or exits with non-zero status -> Check: Related log entries for `ERROR` or `WARN` messages; check specific command's `help` output for correct usage -> Fix: Correct command syntax, investigate script logic if custom, or report bug.",
+          "Error: ProjectDataInconsistency -> Symptom: `pj list` doesn't show expected projects, `pj open` fails to find known projects -> Check: `PROJECTS_PATH` in `~/.config/pj/env.sh`; manually verify directory structure under `$PROJECTS_PATH` -> Fix: Adjust `PROJECTS_PATH`, run `pj refresh` if projects were moved or added manually."
+        ]
+      }
+    }
+  ],
+  "reference": {
+    "system": {
+      "name": "pj",
+      "language": "Shell (POSIX sh)",
+      "description": "A POSIX-compliant terminal project manager framework that integrates with tmux and fzf to streamline project workflows.",
+      "keyFeatures": [
+        "Project lifecycle management (create, open, archive, delete)",
+        "Tmux session integration for isolated project environments",
+        "Fuzzy search for project selection",
+        "Extensible with custom plugins and recipes",
+        "Minimal dependencies on standard Unix tools",
+        "Configurable via environment variables"
+      ]
+    },
+    "dependencies": {
+      "external": [
+        {
+          "name": "sh",
+          "purpose": "Primary shell interpreter for all PJ scripts; POSIX compliance is critical.",
+          "interfaces": [],
+          "installation": "Built-in on most Unix-like systems (e.g., `/bin/sh`). Often symlinked to Bash or Dash.",
+          "version": "POSIX.1-2017 compatible shell"
+        },
+        {
+          "name": "tmux",
+          "purpose": "Terminal multiplexer for creating and managing persistent project sessions.",
+          "interfaces": [
+            {
+              "name": "tmux commands",
+              "description": "PJ uses tmux commands to create, attach to, and manage sessions/windows/panes.",
+              "methods": [
+                {
+                  "name": "new-session",
+                  "signature": "tmux new-session [-ds] <session-name> [-c <path>] [-e <VAR=VAL>]",
+                  "parameters": "`-d`: detached; `-s`: session name; `-c`: start directory; `-e`: environment variables.",
+                  "returnValue": "Exits 0 on success, non-zero on failure. Creates a new tmux session.",
+                  "sideEffects": "Changes tmux server state (new session created)."
+                },
+                {
+                  "name": "has-session",
+                  "signature": "tmux has-session -t <session-name>",
+                  "parameters": "`-t`: target session name.",
+                  "returnValue": "Exits 0 if session exists, 1 if not.",
+                  "sideEffects": "None."
+                },
+                {
+                  "name": "switch-client",
+                  "signature": "tmux switch-client -t <session-name>",
+                  "parameters": "`-t`: target session name.",
+                  "returnValue": "Exits 0 on success. Switches client to specified session.",
+                  "sideEffects": "Changes active tmux client session."
+                },
+                {
+                  "name": "attach-session",
+                  "signature": "tmux attach-session -t <session-name>",
+                  "parameters": "`-t`: target session name.",
+                  "returnValue": "Exits 0 on success. Attaches client to specified session.",
+                  "sideEffects": "Changes active tmux client session."
+                },
+                {
+                  "name": "send-keys",
+                  "signature": "tmux send-keys -t <target> <keys> <Enter>",
+                  "parameters": "`-t`: target pane; `<keys>`: keys to send; `<Enter>`: send Enter key.",
+                  "returnValue": "Exits 0 on success. Sends key strokes to a pane.",
+                  "sideEffects": "Modifies input buffer of a tmux pane."
+                }
+              ]
+            }
+          ],
+          "installation": "[PACKAGE_MANAGER_INSTALL] tmux",
+          "version": ">=1.8 (for modern features)"
+        },
+        {
+          "name": "fzf",
+          "purpose": "General-purpose command-line fuzzy finder for interactive selection of projects.",
+          "interfaces": [
+            {
+              "name": "fzf command",
+              "description": "Used to filter and select items from stdin, outputting the selected item to stdout.",
+              "methods": [
+                {
+                  "name": "fzf",
+                  "signature": "fzf [options]",
+                  "parameters": "Options like `--border`, `--preview`, `--margin`, `--color`, `--with-nth`, `--delimiter` are used to configure appearance and parsing.",
+                  "returnValue": "The selected line from stdin, or empty string if aborted. Exits 0 on selection, 130 on SIGINT (Ctrl+C), 1 on error.",
+                  "sideEffects": "None directly, interacts with user input."
+                }
+              ]
+            }
+          ],
+          "installation": "[PACKAGE_MANAGER_INSTALL] fzf",
+          "version": ">=0.20.0"
+        },
+        {
+          "name": "tree",
+          "purpose": "Lists contents of directories in a tree-like format, used for fuzzy finder previews.",
+          "interfaces": [
+            {
+              "name": "tree command",
+              "description": "Outputs a tree representation of directory contents.",
+              "methods": [
+                {
+                  "name": "tree",
+                  "signature": "tree [-L <level>] [-C] [--dirsfirst] <path>",
+                  "parameters": "`-L`: max display level; `-C`: colorized output; `--dirsfirst`: list directories before files.",
+                  "returnValue": "Tree-formatted directory listing.",
+                  "sideEffects": "None."
+                }
+              ]
+            }
+          ],
+          "installation": "[PACKAGE_MANAGER_INSTALL] tree",
+          "version": "Any stable version"
+        },
+        {
+          "name": "awk",
+          "purpose": "Pattern scanning and processing language, used for formatting output in utilities and help messages.",
+          "interfaces": [],
+          "installation": "[PACKAGE_MANAGER_INSTALL] awk",
+          "version": "Any stable version (GNU Awk recommended)"
+        },
+        {
+          "name": "sed",
+          "purpose": "Stream editor for filtering and transforming text, used for string manipulation.",
+          "interfaces": [],
+          "installation": "[PACKAGE_MANAGER_INSTALL] sed",
+          "version": "Any stable version"
+        },
+        {
+          "name": "grep",
+          "purpose": "Text search utility, used for parsing configuration files and log output.",
+          "interfaces": [],
+          "installation": "[PACKAGE_MANAGER_INSTALL] grep",
+          "version": "Any stable version"
+        },
+        {
+          "name": "curl",
+          "purpose": "Command-line tool for transferring data with URLs, used for downloading installation scripts and checking updates.",
+          "interfaces": [],
+          "installation": "[PACKAGE_MANAGER_INSTALL] curl",
+          "version": "Any stable version"
+        },
+        {
+          "name": "tar",
+          "purpose": "Archiver utility, used for compressing and decompressing project archives.",
+          "interfaces": [],
+          "installation": "[PACKAGE_MANAGER_INSTALL] tar",
+          "version": "Any stable version (GNU Tar recommended for .xz support)"
+        },
+        {
+          "name": "mkdir",
+          "purpose": "Creates directories.",
+          "interfaces": [],
+          "installation": "Built-in on most Unix-like systems.",
+          "version": "Any stable version"
+        },
+        {
+          "name": "ls",
+          "purpose": "Lists directory contents.",
+          "interfaces": [],
+          "installation": "Built-in on most Unix-like systems.",
+          "version": "Any stable version"
+        },
+        {
+          "name": "cat",
+          "purpose": "Concatenates files and prints on the standard output.",
+          "interfaces": [],
+          "installation": "Built-in on most Unix-like systems.",
+          "version": "Any stable version"
+        },
+        {
+          "name": "date",
+          "purpose": "Prints or sets the system date and time.",
+          "interfaces": [],
+          "installation": "Built-in on most Unix-like systems.",
+          "version": "Any stable version"
+        },
+        {
+          "name": "read",
+          "purpose": "Reads a line from standard input.",
+          "interfaces": [],
+          "installation": "Built-in shell command.",
+          "version": "Any stable version"
+        },
+        {
+          "name": "printf",
+          "purpose": "Formats and prints data.",
+          "interfaces": [],
+          "installation": "Built-in shell command.",
+          "version": "Any stable version"
+        },
+        {
+          "name": "echo",
+          "purpose": "Displays a line of text.",
+          "interfaces": [],
+          "installation": "Built-in shell command.",
+          "version": "Any stable version"
+        },
+        {
+          "name": "jq",
+          "purpose": "Lightweight and flexible command-line JSON processor, used for parsing GitHub API responses during updates.",
+          "interfaces": [],
+          "installation": "[PACKAGE_MANAGER_INSTALL] jq",
+          "version": ">=1.5"
+        }
+      ],
+      "peer": []
+    },
+    "integration": {
+      "environmentRequirements": "PJ requires a POSIX-compliant shell (e.g., bash, dash, zsh in sh emulation mode, ksh) and a standard Unix-like operating system (Linux, macOS). It relies heavily on standard command-line utilities. User's `PATH` environment variable must include `~/.local/bin` for the `pj` executable to be found.",
+      "initializationPatterns": [
+        {
+          "description": "Initial installation and setup of PJ framework.",
+          "codeExample": "sh <(curl -fsSL https://github.com/asaidimu/pj/releases/download/latest/install.sh)"
+        },
+        {
+          "description": "Bootstrapping PJ runtime environment within a shell session (handled internally by `~/.local/bin/pj`).",
+          "codeExample": "#!/usr/bin/env sh\n\n# -- set framework path --\nFRAMEWORK_NAME=${FRAMEWORK_NAME:-\"pj\"}\nFRAMEWORK_PATH=${FRAMEWORK_PATH:-\"$HOME/.local/share/pj\"}\nFRAMEWORK_RELEASE=\"main\"\nFRAMEWORK_URL=${FRAMEWORK_URL:-`{{url}}`}\nFRAMEWORK_VERSION=\"{{version}}\"\n\n# -- bootstrap --\n. \"$FRAMEWORK_PATH/src/bootstrap.sh\""
+        }
+      ],
+      "commonPitfalls": [
+        {
+          "issue": "PJ command not found after installation.",
+          "solution": "Ensure `~/.local/bin` is in your shell's `PATH` environment variable. Add `export PATH=\"$HOME/.local/bin:$PATH\"` to your shell's startup file (e.g., `~/.bashrc`, `~/.zshrc`) and restart your terminal or source the file."
+        },
+        {
+          "issue": "Custom plugins or recipes are not executable.",
+          "solution": "Verify that custom scripts in `~/.config/pj/plugins/` or `~/.config/pj/plugins/recipes/` have execute permissions. Run `chmod +x <path_to_script>`."
+        },
+        {
+          "issue": "Errors related to missing external commands (e.g., `fzf: command not found`).",
+          "solution": "Install the reported missing dependency using your operating system's package manager (e.g., `sudo apt install fzf` on Debian/Ubuntu, `brew install fzf` on macOS)."
+        }
+      ],
+      "lifecycleDependencies": "PJ relies on a functional `tmux` server for session management. When `pj open` is executed, it either connects to an existing `tmux` server or starts a new one. Project-specific `.pj` or `.project` setup scripts are executed *after* the `tmux` session is initialized and the current working directory is set. Environment variables defined in `.env` files are loaded into the `tmux` session before any project setup script runs."
+    },
+    "types": {},
+    "methods": {
+      "pj_open": {
+        "id": "method:pj_open",
+        "useCase": "To quickly open or switch to a project in a dedicated tmux session, potentially running project-specific setup scripts.",
+        "signature": "pj open [refresh|help]",
+        "parameters": "Arguments: `refresh` (string, optional) - If present, regenerates the project list before fuzzy selection. `help` (string, optional) - Displays help message for `open` command.",
+        "prerequisites": "System must have `tmux`, `fzf`, and `tree` installed. Project path must be accessible.",
+        "sideEffects": "Creates a new tmux session if one doesn't exist for the project. May execute `.pj` or `.project` script within the session. May create/update `$PROJECTS_LIST` file.",
+        "returnValue": "None. Attaches user to a tmux session or exits on error/cancellation.",
+        "exceptions": [
+          "ERROR_ILLEGAL_OP: If an invalid argument other than `refresh` or `help` is provided.",
+          "ERROR_UNKNOWN_PROJECT: If the selected project path is invalid or inaccessible during internal processing.",
+          "Shell errors: If `tmux` or `fzf` commands fail."
+        ],
+        "availability": "sync",
+        "status": "active",
+        "related": {
+          "types": [],
+          "patterns": ["pattern:open_project_fuzzy", "pattern:project_specific_setup"],
+          "errors": ["error:ERROR_ILLEGAL_OP", "error:ERROR_UNKNOWN_PROJECT"]
+        }
+      },
+      "pj_new": {
+        "id": "method:pj_new",
+        "useCase": "To create a new project directory structure based on a predefined recipe or custom template.",
+        "signature": "pj new <recipe> <project-name> [-o|--overwrite]",
+        "parameters": "`recipe` (string, required) - The name of the project recipe to use (e.g., 'base', 'my-custom-recipe'). `project-name` (string, required) - The desired name for the new project directory. `-o` or `--overwrite` (flag, optional) - If set, allows the command to overwrite an existing project directory with the same name.",
+        "prerequisites": "Recipe file must exist and be executable. `$PROJECTS_PATH` must be writable.",
+        "sideEffects": "Creates a new directory structure under `$PROJECTS_PATH` named `<project-name>`. May overwrite existing data if `--overwrite` flag is used. Triggers `pj refresh` via post-hook.",
+        "returnValue": "None. Exits on error or upon successful project creation.",
+        "exceptions": [
+          "ERROR_INVALID_OPTIONS: If required arguments are missing.",
+          "ERROR_UNKNOWN_PLUGIN: If the specified recipe does not exist.",
+          "ERROR_UNKNOWN_PROJECT: If the project name is invalid or not provided.",
+          "ERROR_PROJECT_EXISTS: If a project with the same name already exists and `--overwrite` is not used.",
+          "Shell errors: If `mkdir` or recipe script commands fail."
+        ],
+        "availability": "sync",
+        "status": "active",
+        "related": {
+          "types": [],
+          "patterns": ["pattern:create_project_from_recipe"],
+          "errors": ["error:ERROR_INVALID_OPTIONS", "error:ERROR_UNKNOWN_PLUGIN", "error:ERROR_UNKNOWN_PROJECT", "error:ERROR_PROJECT_EXISTS"]
+        }
+      },
+      "pj_archive": {
+        "id": "method:pj_archive",
+        "useCase": "To compress a project directory into a timestamped `.tar.xz` archive for backup or storage.",
+        "signature": "pj archive <project-name>",
+        "parameters": "`project-name` (string, required) - The name of the project directory to be archived.",
+        "prerequisites": "Project directory must exist under `$PROJECTS_PATH`. `tar` must be installed and support `.xz` compression. `$ARCHIVE_PATH` must be writable.",
+        "sideEffects": "Creates a `.tar.xz` archive of the specified project in `$ARCHIVE_PATH`.",
+        "returnValue": "None. Outputs success/failure message.",
+        "exceptions": [
+          "ERROR_INVALID_OPTIONS: If no project name is provided.",
+          "ERROR_ILLEGAL_OP: If project name is '.' or '..'.",
+          "ERROR_UNKNOWN_PROJECT: If the specified project does not exist.",
+          "Shell errors: If `tar` command fails (e.g., due to permissions, disk space)."
+        ],
+        "availability": "sync",
+        "status": "active",
+        "related": {
+          "types": [],
+          "patterns": ["pattern:archive_project"],
+          "errors": ["error:ERROR_INVALID_OPTIONS", "error:ERROR_ILLEGAL_OP", "error:ERROR_UNKNOWN_PROJECT"]
+        }
+      },
+      "pj_delete": {
+        "id": "method:pj_delete",
+        "useCase": "To permanently remove a project directory from the file system, with a confirmation step.",
+        "signature": "pj delete <project-name>",
+        "parameters": "`project-name` (string, required) - The name of the project directory to be deleted.",
+        "prerequisites": "Project directory must exist under `$PROJECTS_PATH`. User must confirm deletion via interactive prompt.",
+        "sideEffects": "Deletes the specified project directory and all its contents. (IRREVERSIBLE)",
+        "returnValue": "None. Outputs success/failure message.",
+        "exceptions": [
+          "ERROR_INVALID_OPTIONS: If no project name is provided.",
+          "ERROR_ILLEGAL_OP: If project name is '.' or '..'.",
+          "ERROR_UNKNOWN_PROJECT: If the specified project does not exist.",
+          "Shell errors: If `rm -rf` command fails (e.g., due to permissions)."
+        ],
+        "availability": "sync",
+        "status": "active",
+        "related": {
+          "types": [],
+          "patterns": ["pattern:confirm_and_delete"],
+          "errors": ["error:ERROR_INVALID_OPTIONS", "error:ERROR_ILLEGAL_OP", "error:ERROR_UNKNOWN_PROJECT"]
+        }
+      },
+      "pj_list": {
+        "id": "method:pj_list",
+        "useCase": "To display a list of all project directories managed by PJ under `$PROJECTS_PATH`.",
+        "signature": "pj list [help]",
+        "parameters": "`help` (string, optional) - Displays help message for `list` command.",
+        "prerequisites": "`$PROJECTS_PATH` must be accessible.",
+        "sideEffects": "None.",
+        "returnValue": "Outputs a list of project names to standard output, one per line.",
+        "exceptions": [
+          "Shell errors: If `ls` command fails (e.g., due to permissions)."
+        ],
+        "availability": "sync",
+        "status": "active",
+        "related": {
+          "types": [],
+          "patterns": []
+        }
+      },
+      "pj_refresh": {
+        "id": "method:pj_refresh",
+        "useCase": "To regenerate PJ's internal list of known projects, typically after manual changes to project directories outside of PJ.",
+        "signature": "pj refresh [help]",
+        "parameters": "`help` (string, optional) - Displays help message for `refresh` command.",
+        "prerequisites": "`$PROJECTS_LIST_GENERATOR` script must be present and executable, or default generator must be used. `$PROJECTS_LIST` file must be writable.",
+        "sideEffects": "Overwrites the content of `$PROJECTS_LIST` with the current list of project paths.",
+        "returnValue": "None. Outputs success/failure message.",
+        "exceptions": [
+          "Shell errors: If `_generate_list` or underlying commands (`find`, `echo`) fail.",
+          "ERROR_INVALID_OPTIONS: If an invalid argument other than `help` is provided."
+        ],
+        "availability": "sync",
+        "status": "active",
+        "related": {
+          "types": [],
+          "patterns": [],
+          "errors": ["error:ERROR_INVALID_OPTIONS"]
+        }
+      },
+      "pj_update": {
+        "id": "method:pj_update",
+        "useCase": "To upgrade the PJ framework to its latest stable release.",
+        "signature": "pj update [help]",
+        "parameters": "`help` (string, optional) - Displays help message for `update` command.",
+        "prerequisites": "Internet connectivity, `curl`, `jq` installed. Write permissions to `FRAMEWORK_PATH` and the `pj` executable.",
+        "sideEffects": "Downloads and installs latest PJ files, updates `pj` binary's version string.",
+        "returnValue": "None. Outputs upgrade status.",
+        "exceptions": [
+          "Shell errors: If `curl` or `jq` commands fail, or if installation script encounters issues. Network errors.",
+          "ERROR_INVALID_OPTIONS: If an invalid argument other than `help` is provided."
+        ],
+        "availability": "async (due to network operations)",
+        "status": "active",
+        "related": {
+          "types": [],
+          "patterns": [],
+          "errors": ["error:ERROR_INVALID_OPTIONS"]
+        }
+      },
+      "pj_help": {
+        "id": "method:pj_help",
+        "useCase": "To display general help for the PJ framework or specific help for a given command.",
+        "signature": "pj help [<command>]",
+        "parameters": "`command` (string, optional) - The name of a PJ command (e.g., `open`, `new`) for which to display specific help.",
+        "prerequisites": "None.",
+        "sideEffects": "None.",
+        "returnValue": "Outputs help text to standard output.",
+        "exceptions": [],
+        "availability": "sync",
+        "status": "active",
+        "related": {
+          "types": [],
+          "patterns": []
+        }
+      },
+      "pj_example": {
+        "id": "method:pj_example",
+        "useCase": "Demonstrates a basic custom command within the PJ framework.",
+        "signature": "pj example [help]",
+        "parameters": "`help` (string, optional) - Displays help message for `example` command.",
+        "prerequisites": "None.",
+        "sideEffects": "None.",
+        "returnValue": "Prints 'Hello, World!' to standard output.",
+        "exceptions": [
+          "ERROR_INVALID_OPTIONS: If an invalid argument other than `help` is provided."
+        ],
+        "availability": "sync",
+        "status": "active",
+        "related": {
+          "types": [],
+          "patterns": [],
+          "errors": ["error:ERROR_INVALID_OPTIONS"]
+        }
+      },
+      "run_command": {
+        "id": "method:run_command",
+        "useCase": "Internal entry point for executing all PJ commands after initial flag parsing.",
+        "signature": "run_command <command> [args...]",
+        "parameters": "`command` (string, required) - The specific PJ command to execute (e.g., 'open', 'new'). `args` (string..., optional) - Any arguments to be passed to the command's `init` function.",
+        "prerequisites": "Environment variables from `src/env.sh` and user `env.sh` must be sourced. Command module (`index.sh`) must exist and be executable.",
+        "sideEffects": "Modifies internal framework variables (`FRAMEWORK_ARGUMENTS`). Executes pre/post hooks. Sources the target command's script.",
+        "returnValue": "None. Execution flow is passed to the command's `init` function.",
+        "exceptions": [
+          "ERROR_ILLEGAL_OP: If the command module cannot be found or executed.",
+          "Any errors from the executed command or its hooks."
+        ],
+        "availability": "sync",
+        "status": "active",
+        "related": {
+          "types": [],
+          "patterns": ["pattern:command_lifecycle"],
+          "errors": ["error:ERROR_ILLEGAL_OP"]
+        }
+      },
+      "parse_flag": {
+        "id": "method:parse_flag",
+        "useCase": "Internal utility to identify and set global framework flags (`--silent`, `--overwrite`, `--help`, `--version`).",
+        "signature": "parse_flag <argument>",
+        "parameters": "`argument` (string, required) - A command-line argument string to check if it's a known flag.",
+        "prerequisites": "Global flag variables (`FLAG_SILENT`, `FLAG_OVERWRITE`, etc.) must be defined.",
+        "sideEffects": "Sets global `FLAG_` environment variables if a flag is matched. May cause program exit for `--help` or `--version`.",
+        "returnValue": "Returns 0 if `argument` is a flag, `NOT_A_FLAG` (997) otherwise.",
+        "exceptions": [],
+        "availability": "sync",
+        "status": "active",
+        "related": {
+          "types": [],
+          "patterns": []
+        }
+      },
+      "setup": {
+        "id": "method:setup",
+        "useCase": "Sets up global project-related environment variables for a given project name.",
+        "signature": "setup <project-name>",
+        "parameters": "`project-name` (string, required) - The name of the project.",
+        "prerequisites": "`PROJECTS_PATH` and other related path variables must be set.",
+        "sideEffects": "Exports `PROJECT_NAME`, `PROJECT_FILE_PATH`, `PROJECT_PATH`, `PROJECT_DATA` environment variables.",
+        "returnValue": "None.",
+        "exceptions": [],
+        "availability": "sync",
+        "status": "active",
+        "related": {
+          "types": [],
+          "patterns": []
+        }
+      },
+      "update_template": {
+        "id": "method:update_template",
+        "useCase": "Updates placeholder values within a template file using `sed`.",
+        "signature": "update_template <template-file> [key:value...]",
+        "parameters": "`template-file` (string, required) - Path to the template file. `key:value` (string..., optional) - One or more `key:value` pairs to replace `{{key}}` placeholders with `value`.",
+        "prerequisites": "Template file must exist. `sed` must be available.",
+        "sideEffects": "Modifies the `template-file` in place.",
+        "returnValue": "None.",
+        "exceptions": [
+          "ERROR_INVALID_OPTIONS: If no template file is specified."
+        ],
+        "availability": "sync",
+        "status": "active",
+        "related": {
+          "types": [],
+          "patterns": []
+        }
+      },
+      "fill_template": {
+        "id": "method:fill_template",
+        "useCase": "Interactively fills placeholder values in a template file by prompting the user for each `{{key}}`.",
+        "signature": "fill_template <template-file>",
+        "parameters": "`template-file` (string, required) - Path to the template file.",
+        "prerequisites": "Template file must exist. `grep`, `sed`, `read` must be available.",
+        "sideEffects": "Modifies the `template-file` in place based on user input.",
+        "returnValue": "None.",
+        "exceptions": [
+          "ERROR_INVALID_OPTIONS: If no template file is specified."
+        ],
+        "availability": "sync",
+        "status": "active",
+        "related": {
+          "types": [],
+          "patterns": []
+        }
+      },
+      "extract_file": {
+        "id": "method:extract_file",
+        "useCase": "Copies a file from the PJ assets directory to a specified output path.",
+        "signature": "extract_file <asset-name> <output-path>",
+        "parameters": "`asset-name` (string, required) - Name of the asset file within `$ASSET_PATH`. `output-path` (string, required) - Destination path for the copied file.",
+        "prerequisites": "Asset file must exist at `$ASSET_PATH/<asset-name>`.",
+        "sideEffects": "Copies file from source to destination.",
+        "returnValue": "None.",
+        "exceptions": [
+          "ERROR_INVALID_OPTIONS: If asset name or output path is missing."
+        ],
+        "availability": "sync",
+        "status": "active",
+        "related": {
+          "types": [],
+          "patterns": []
+        }
+      },
+      "tabular": {
+        "id": "method:tabular",
+        "useCase": "Formats a colon-separated string into a tabular output for help messages.",
+        "signature": "tabular <string>",
+        "parameters": "`string` (string, required) - A string in `key:value` format.",
+        "prerequisites": "`awk` must be available.",
+        "sideEffects": "None.",
+        "returnValue": "Prints formatted string to standard output.",
+        "exceptions": [],
+        "availability": "sync",
+        "status": "active",
+        "related": {
+          "types": [],
+          "patterns": []
+        }
+      },
+      "module_list": {
+        "id": "method:module_list",
+        "useCase": "Generates a formatted list of available PJ commands (modules) with their summaries.",
+        "signature": "module_list",
+        "parameters": "None.",
+        "prerequisites": "Module directories (`$FRAMEWORK_ROUTE`, `$CUSTOM_PLUGINS_PATH`) must be accessible. `grep`, `sed`, `awk` must be available.",
+        "sideEffects": "None.",
+        "returnValue": "Prints a formatted list of command names and their summaries.",
+        "exceptions": [],
+        "availability": "sync",
+        "status": "active",
+        "related": {
+          "types": [],
+          "patterns": []
+        }
+      },
+      "global_help": {
+        "id": "method:global_help",
+        "useCase": "Displays the top-level help message for the PJ framework.",
+        "signature": "global_help",
+        "parameters": "None.",
+        "prerequisites": "`$FRAMEWORK_ROUTE/help/index.sh` must exist.",
+        "sideEffects": "None.",
+        "returnValue": "Prints general PJ help message.",
+        "exceptions": [],
+        "availability": "sync",
+        "status": "active",
+        "related": {
+          "types": [],
+          "patterns": []
+        }
+      },
+      "_generate_list": {
+        "id": "method:_generate_list",
+        "useCase": "Generates or regenerates the list of project paths that `pj open` uses. Can be overridden by custom scripts.",
+        "signature": "_generate_list",
+        "parameters": "None.",
+        "prerequisites": "Either `$PROJECTS_LIST_GENERATOR` must exist and be executable, or default behavior (listing `$HOME`) is used. `$PROJECTS_LIST` must be writable.",
+        "sideEffects": "Overwrites `$PROJECTS_LIST` with discovered project paths.",
+        "returnValue": "None.",
+        "exceptions": [
+          "Shell errors: If `find` or file operations fail.",
+          "ERROR_INVALID_OPTIONS: If `$PROJECTS_LIST_GENERATOR` is not defined or accessible."
+        ],
+        "availability": "sync",
+        "status": "active",
+        "related": {
+          "types": [],
+          "patterns": ["pattern:custom_project_generator"],
+          "errors": []
+        }
+      },
+      "time_stamp": {
+        "id": "method:time_stamp",
+        "useCase": "Generates a current time string in HH:MM:SS format.",
+        "signature": "time_stamp",
+        "parameters": "None.",
+        "prerequisites": "`date` command must be available.",
+        "sideEffects": "None.",
+        "returnValue": "String: Current time (e.g., '14:30:55').",
+        "exceptions": [],
+        "availability": "sync",
+        "status": "active",
+        "related": {
+          "types": [],
+          "patterns": []
+        }
+      },
+      "repl": {
+        "id": "method:repl",
+        "useCase": "Internal utility to repeat a character a specified number of times.",
+        "signature": "repl <char> <count>",
+        "parameters": "`char` (string, required) - The character to repeat. `count` (integer, required) - The number of times to repeat the character.",
+        "prerequisites": "None.",
+        "sideEffects": "None.",
+        "returnValue": "String: Repeated characters.",
+        "exceptions": [],
+        "availability": "sync",
+        "status": "active",
+        "related": {
+          "types": [],
+          "patterns": []
+        }
+      },
+      "label": {
+        "id": "method:label",
+        "useCase": "Formats a colored label for log and output messages (e.g., INFO, ERROR).",
+        "signature": "label <color-function> <level-string>",
+        "parameters": "`color-function` (string, required) - Name of a color utility function (e.g., `bold_green`). `level-string` (string, required) - The label text (e.g., 'INFO', 'ERROR').",
+        "prerequisites": "Color utility functions must be sourced.",
+        "sideEffects": "None.",
+        "returnValue": "String: Formatted and colored label.",
+        "exceptions": [],
+        "availability": "sync",
+        "status": "active",
+        "related": {
+          "types": [],
+          "patterns": []
+        }
+      },
+      "log": {
+        "id": "method:log",
+        "useCase": "Writes timestamped messages to the PJ log file.",
+        "signature": "log <message...>",
+        "parameters": "`message` (string..., required) - The message content to log.",
+        "prerequisites": "`FRAMEWORK_LOGS` environment variable must be set. `time_stamp` function must be available.",
+        "sideEffects": "Appends message to `$FRAMEWORK_LOGS` file.",
+        "returnValue": "None.",
+        "exceptions": [],
+        "availability": "sync",
+        "status": "active",
+        "related": {
+          "types": [],
+          "patterns": []
+        }
+      },
+      "prompt": {
+        "id": "method:prompt",
+        "useCase": "Formats and prints a stylized command-line prompt for user input.",
+        "signature": "prompt <message...>",
+        "parameters": "`message` (string..., required) - The message to display as part of the prompt.",
+        "prerequisites": "Color utility functions (`red`, `blue`) must be sourced.",
+        "sideEffects": "None.",
+        "returnValue": "Prints formatted prompt to standard output.",
+        "exceptions": [],
+        "availability": "sync",
+        "status": "active",
+        "related": {
+          "types": [],
+          "patterns": []
+        }
+      },
+      "question": {
+        "id": "method:question",
+        "useCase": "Prompts the user for input with an optional default value.",
+        "signature": "question <property> [default-value]",
+        "parameters": "`property` (string, required) - The question/property name to display. `default-value` (string, optional) - A default value to use if user provides no input.",
+        "prerequisites": "`read`, `prompt`, `bold_grey`, `blue` functions must be available.",
+        "sideEffects": "Reads input from stdin.",
+        "returnValue": "String: User input or default value.",
+        "exceptions": [],
+        "availability": "sync",
+        "status": "active",
+        "related": {
+          "types": [],
+          "patterns": []
+        }
+      },
+      "inform": {
+        "id": "method:inform",
+        "useCase": "Prints an informational message to standard output.",
+        "signature": "inform <message...>",
+        "parameters": "`message` (string..., required) - The message content.",
+        "prerequisites": "`label` and `bold_blue` functions must be available.",
+        "sideEffects": "None.",
+        "returnValue": "Prints labeled message to standard output.",
+        "exceptions": [],
+        "availability": "sync",
+        "status": "active",
+        "related": {
+          "types": [],
+          "patterns": []
+        }
+      },
+      "success": {
+        "id": "method:success",
+        "useCase": "Prints a success message to standard output.",
+        "signature": "success <message...>",
+        "parameters": "`message` (string..., required) - The message content.",
+        "prerequisites": "`label` and `bold_green` functions must be available.",
+        "sideEffects": "None.",
+        "returnValue": "Prints labeled message to standard output.",
+        "exceptions": [],
+        "availability": "sync",
+        "status": "active",
+        "related": {
+          "types": [],
+          "patterns": []
+        }
+      },
+      "warn": {
+        "id": "method:warn",
+        "useCase": "Prints a warning message to standard output.",
+        "signature": "warn <message...>",
+        "parameters": "`message` (string..., required) - The message content.",
+        "prerequisites": "`label` and `bold_yellow` functions must be available.",
+        "sideEffects": "None.",
+        "returnValue": "Prints labeled message to standard output.",
+        "exceptions": [],
+        "availability": "sync",
+        "status": "active",
+        "related": {
+          "types": [],
+          "patterns": []
+        }
+      },
+      "trace": {
+        "id": "method:trace",
+        "useCase": "Prints a trace/debug message to standard output, typically used for progress indicators.",
+        "signature": "trace <message...>",
+        "parameters": "`message` (string..., required) - The message content.",
+        "prerequisites": "`label` and `bold_cyan` functions must be available.",
+        "sideEffects": "None.",
+        "returnValue": "Prints labeled message to standard output.",
+        "exceptions": [],
+        "availability": "sync",
+        "status": "active",
+        "related": {
+          "types": [],
+          "patterns": []
+        }
+      },
+      "debug": {
+        "id": "method:debug",
+        "useCase": "Prints a debug message to standard output. Can be silenced by `FLAG_SILENT`.",
+        "signature": "debug <message...>",
+        "parameters": "`message` (string..., required) - The message content.",
+        "prerequisites": "`label` and `bold_blue` functions must be available. `FLAG_SILENT` variable checked.",
+        "sideEffects": "None.",
+        "returnValue": "Prints labeled message to standard output if not silent.",
+        "exceptions": [],
+        "availability": "sync",
+        "status": "active",
+        "related": {
+          "types": [],
+          "patterns": []
+        }
+      },
+      "error": {
+        "id": "method:error",
+        "useCase": "Prints an error message to standard output and logs it.",
+        "signature": "error [message] [error-code]",
+        "parameters": "`message` (string, optional) - The error description. Defaults to 'an unexpected error occured!'. `error-code` (integer, optional) - The error code associated with the error. Defaults to `$ERROR`.",
+        "prerequisites": "`log`, `label`, `bold_red` functions must be available. `FLAG_SILENT` is temporarily overridden.",
+        "sideEffects": "Writes to log file. Sets `FLAG_SILENT` to 0 temporarily.",
+        "returnValue": "Prints labeled error message to standard output.",
+        "exceptions": [],
+        "availability": "sync",
+        "status": "active",
+        "related": {
+          "types": [],
+          "patterns": ["pattern:basic_error_handling"]
+        }
+      },
+      "panic": {
+        "id": "method:panic",
+        "useCase": "Prints an error message, logs it, and immediately exits the script with a specified error code.",
+        "signature": "panic [message] [error-code]",
+        "parameters": "`message` (string, optional) - The error description. Defaults to 'an unexpected error occured!'. `error-code` (integer, optional) - The exit code. Defaults to `$ERROR`.",
+        "prerequisites": "`log`, `label`, `bold_red` functions must be available. `FLAG_SILENT` is temporarily overridden.",
+        "sideEffects": "Writes to log file. Exits the script. Sets `FLAG_SILENT` to 0 temporarily.",
+        "returnValue": "Never returns. Exits with `error-code`.",
+        "exceptions": [],
+        "availability": "sync",
+        "status": "active",
+        "related": {
+          "types": [],
+          "patterns": ["pattern:critical_error_exit"]
+        }
+      },
+      "abort": {
+        "id": "method:abort",
+        "useCase": "Prints a critical error message and exits the script with a specified error code, often used for fatal installation/initialization errors.",
+        "signature": "abort [message] [error-code]",
+        "parameters": "`message` (string, optional) - The error description. Defaults to 'an unexpected error occured!'. `error-code` (integer, optional) - The exit code. Defaults to `$ERROR`.",
+        "prerequisites": "`log`, `bold_red` functions must be available.",
+        "sideEffects": "Writes to log file. Exits the script.",
+        "returnValue": "Never returns. Exits with `error-code`.",
+        "exceptions": [],
+        "availability": "sync",
+        "status": "active",
+        "related": {
+          "types": [],
+          "patterns": ["pattern:installation_failure_exit"]
+        }
+      },
+      "notify": {
+        "id": "method:notify",
+        "useCase": "Prints a success or failure message based on the exit status of the previous command.",
+        "signature": "notify <success-message> <failure-message>",
+        "parameters": "`success-message` (string, required) - Message to display if previous command was successful. `failure-message` (string, required) - Message to display if previous command failed.",
+        "prerequisites": "`success`, `error` functions must be available. `FLAG_SILENT` checked.",
+        "sideEffects": "None, based on `$?`.",
+        "returnValue": "Prints success or error message to standard output.",
+        "exceptions": [],
+        "availability": "sync",
+        "status": "active",
+        "related": {
+          "types": [],
+          "patterns": ["pattern:status_based_feedback"]
+        }
+      },
+      "banner": {
+        "id": "method:banner",
+        "useCase": "Displays the PJ ASCII art banner.",
+        "signature": "banner",
+        "parameters": "None.",
+        "prerequisites": "Color utility functions (`yellow`, `blue`) must be sourced. `sleep` command is used for animation.",
+        "sideEffects": "None.",
+        "returnValue": "Prints ASCII art to standard output.",
+        "exceptions": [],
+        "availability": "sync",
+        "status": "active",
+        "related": {
+          "types": [],
+          "patterns": []
+        }
+      },
+      "clear_line": {
+        "id": "method:clear_line",
+        "useCase": "Clears the current line in the terminal, used for animated loaders.",
+        "signature": "clear_line",
+        "parameters": "None.",
+        "prerequisites": "Terminal must support ANSI escape codes.",
+        "sideEffects": "Modifies terminal cursor position and content.",
+        "returnValue": "None.",
+        "exceptions": [],
+        "availability": "sync",
+        "status": "active",
+        "related": {
+          "types": [],
+          "patterns": []
+        }
+      },
+      "load": {
+        "id": "method:load",
+        "useCase": "Displays an animated loading spinner while a background process (PID) is running, then prints a final message.",
+        "signature": "load <text> [msg] <pid>",
+        "parameters": "`text` (string, required) - The text to display next to the spinner. `msg` (string, optional) - The message to display after loading finishes. `pid` (integer, required) - The process ID to monitor.",
+        "prerequisites": "`trace`, `clear_line`, `inform`, `ps`, `grep` commands must be available.",
+        "sideEffects": "Outputs animated text to terminal. Clears lines. Prints final message.",
+        "returnValue": "None.",
+        "exceptions": [],
+        "availability": "sync",
+        "status": "active",
+        "related": {
+          "types": [],
+          "patterns": ["pattern:animated_loading_indicator"]
+        }
+      },
+      "show_version": {
+        "id": "method:show_version",
+        "useCase": "Displays the PJ framework's version along with the banner.",
+        "signature": "show_version",
+        "parameters": "None.",
+        "prerequisites": "`banner`, `load`, `bold_green` functions must be available. `FRAMEWORK_VERSION` must be set.",
+        "sideEffects": "None.",
+        "returnValue": "Prints version information to standard output.",
+        "exceptions": [],
+        "availability": "sync",
+        "status": "active",
+        "related": {
+          "types": [],
+          "patterns": []
+        }
+      }
+    },
+    "decisionTrees": {
+      "open_project_workflow": {
+        "id": "decisionTree:open_project_workflow",
+        "question": "Which project should be opened or created?",
+        "logic": "IF user_executes_\"pj open\" THEN IF `refresh` argument is present THEN `_generate_list` ELSE proceed_to_selection; THEN user_selects_project_via_fzf; THEN `_sessionize` project_path; ELSE display_help_or_error",
+        "validationMethod": "Check `tmux ls` for active session. Verify current working directory in `tmux` pane.",
+        "related": {
+          "methods": ["method:pj_open", "method:_generate_list", "method:_select_target", "method:_create_session", "method:_goto_session", "method:_sessionize"],
+          "patterns": ["pattern:open_project_fuzzy", "pattern:project_specific_setup"]
+        }
+      },
+      "create_new_project_workflow": {
+        "id": "decisionTree:create_new_project_workflow",
+        "question": "How to create a new project with PJ?",
+        "logic": "IF `pj new <recipe> <project-name>` is executed THEN IF project_exists AND `overwrite` flag is NOT set THEN `panic` with `ERROR_PROJECT_EXISTS` ELSE IF `recipe` is NOT found THEN `panic` with `ERROR_UNKNOWN_PLUGIN` ELSE execute_recipe_script(project_name); THEN run_command(\"refresh\"); ELSE display_help_or_error",
+        "validationMethod": "Check `ls $PROJECTS_PATH/<project-name>` for directory existence and content matching recipe.",
+        "related": {
+          "methods": ["method:pj_new", "method:run_command"],
+          "patterns": ["pattern:create_project_from_recipe"],
+          "errors": ["error:ERROR_PROJECT_EXISTS", "error:ERROR_UNKNOWN_PLUGIN"]
+        }
+      },
+      "flag_parsing_workflow": {
+        "id": "decisionTree:flag_parsing_workflow",
+        "question": "How are global flags handled?",
+        "logic": "IF `run_command` receives arguments THEN iterate_through_each_argument; THEN `parse_flag(argument)`; IF `parse_flag` returns 0 THEN argument_is_a_flag_and_handled ELSE argument_is_part_of_command_arguments; THEN filter_out_flags_from_`FRAMEWORK_ARGUMENTS`; ELSE continue_without_flags",
+        "validationMethod": "Check `FLAG_SILENT`, `FLAG_OVERWRITE` values after `run_command` with flags. Verify `FRAMEWORK_ARGUMENTS` does not contain flags.",
+        "related": {
+          "methods": ["method:run_command", "method:parse_flag", "method:_remove_flags"],
+          "patterns": []
+        }
+      }
+    },
+    "patterns": {
+      "open_project_fuzzy": {
+        "id": "pattern:open_project_fuzzy",
+        "description": "Interactive selection of a project using fzf and opening it in a tmux session.",
+        "example": {
+          "code": "pj open",
+          "validation": "A list of project paths is displayed, allowing fuzzy search and selection. A new tmux session is created for the selected project (e.g., 'my-project') if it doesn't exist, otherwise attaches to it."
+        },
+        "related": {
+          "methods": ["method:pj_open", "method:_select_target", "method:_create_session", "method:_goto_session"],
+          "errors": []
+        }
+      },
+      "create_project_from_recipe": {
+        "id": "pattern:create_project_from_recipe",
+        "description": "Scaffolding a new project based on a predefined template script (recipe).",
+        "example": {
+          "code": "pj new base my-new-project",
+          "validation": "Directory `$PROJECTS_PATH/my-new-project` exists and contains basic project files defined by the 'base' recipe (e.g., a `README.md`).",
+          "sideEffects": "A new project directory is created. The project list is refreshed."
+        },
+        "related": {
+          "methods": ["method:pj_new"],
+          "errors": ["error:ERROR_PROJECT_EXISTS", "error:ERROR_UNKNOWN_PLUGIN"]
+        }
+      },
+      "project_specific_setup": {
+        "id": "pattern:project_specific_setup",
+        "description": "Automating project environment setup by executing a script (`.pj` or `.env`) within its tmux session.",
+        "example": {
+          "code": "# In $PROJECT_PATH/.pj or $PROJECT_PATH/.project\n#!/usr/bin/env sh\n\ntmux neww -d -n workspace -t $session:2\ntmux send-keys -t $session:1 \"$EDITOR\" Enter",
+          "validation": "Upon `pj open` of the project, `tmux` session has specific windows/panes created or commands pre-filled as per the script. Environment variables from `.env` are set within the session."
+        },
+        "related": {
+          "methods": ["method:pj_open"],
+          "errors": []
+        }
+      },
+      "confirm_and_delete": {
+        "id": "pattern:confirm_and_delete",
+        "description": "A safety pattern for destructive operations, requiring user to retype a confirmation string.",
+        "example": {
+          "code": "pj delete my-risky-project\n# (System prompts for confirmation keyword, e.g., 'my-risky-project-123')",
+          "validation": "If correct keyword is entered, `$PROJECTS_PATH/my-risky-project` directory is removed. Otherwise, an 'incorrect input!' message is displayed, and the project remains."
+        },
+        "related": {
+          "methods": ["method:pj_delete", "method:question"],
+          "errors": ["error:ERROR_ILLEGAL_OP"]
+        }
+      },
+      "command_lifecycle": {
+        "id": "pattern:command_lifecycle",
+        "description": "The sequence of execution for any PJ command, including flag processing and hook execution.",
+        "example": {
+          "code": "run_command \"new\" \"base\" \"my-project\" \"--silent\"\n\n# Internal flow:\n# 1. _remove_flags \"new\" \"base\" \"my-project\" \"--silent\" -> sets FLAG_SILENT=1, FRAMEWORK_ARGUMENTS=\"new base my-project\"\n# 2. _module_start \"new\" \"base\" \"my-project\"\n# 3. _run_hook \"new\" pre_hook.sh \"new\" \"base\" \"my-project\"\n# 4. Sources src/module/new/index.sh (calls init \"base\" \"my-project\")\n# 5. On exit, _run_hook \"new\" post_hook.sh \"new\" \"base\" \"my-project\" is triggered (e.g., runs pj refresh)",
+          "validation": "All flags are correctly parsed and applied. Pre-hooks execute before main command logic. Post-hooks execute after, regardless of main command success."
+        },
+        "related": {
+          "methods": ["method:run_command", "method:parse_flag", "method:_remove_flags", "method:_module_start", "method:_run_hook"],
+          "errors": []
+        }
+      },
+      "custom_project_generator": {
+        "id": "pattern:custom_project_generator",
+        "description": "Overriding PJ's default project discovery mechanism to include projects from arbitrary file system locations.",
+        "example": {
+          "code": "# ~/.config/pj/plugins/generator\n#!/bin/sh\n\n# Add projects from a specific client work directory\nfind \"$HOME/work/client-xyz\" -maxdepth 1 -type d -name \"proj-*\" >> \"$PROJECTS_LIST\"\n\n# Also include any project directories directly in the home folder\nls -d \"$HOME\"/*/ | sed 's/\\/$//' >> \"$PROJECTS_LIST\"",
+          "validation": "After creating and making `~/.config/pj/plugins/generator` executable, running `pj open` or `pj refresh` will list projects from `$HOME/work/client-xyz` and `$HOME/*` directories.",
+          "sideEffects": "`$PROJECTS_LIST` file is populated by the custom script."
+        },
+        "related": {
+          "methods": ["method:_generate_list", "method:pj_refresh"],
+          "errors": []
+        }
+      },
+      "animated_loading_indicator": {
+        "id": "pattern:animated_loading_indicator",
+        "description": "Provides visual feedback for long-running operations by displaying a spinner and updating message.",
+        "example": {
+          "code": "my_long_task & \npid=$!\nload \"Processing data\" \"Data processed successfully\" $pid\nwait $pid",
+          "validation": "A spinning animation appears next to 'Processing data'. Once `my_long_task` completes, the spinner disappears, and 'Data processed successfully' is printed."
+        },
+        "related": {
+          "methods": ["method:load", "method:clear_line", "method:trace", "method:inform"],
+          "errors": []
+        }
+      },
+      "status_based_feedback": {
+        "id": "pattern:status_based_feedback",
+        "description": "Provides a success or failure message based on the exit status of the immediately preceding command.",
+        "example": {
+          "code": "mkdir my_new_dir\nnotify \"Directory created!\" \"Failed to create directory!\"\n\n# Output if successful:\n#   SUCCESS │ Directory created!\n\n# Output if mkdir fails (e.g., directory already exists):\n#   ERROR   │ Failed to create directory! (exit code 1)",
+          "validation": "The `notify` function prints a green success message if `mkdir` exits with 0, or a red error message (including exit code) if `mkdir` exits non-zero."
+        },
+        "related": {
+          "methods": ["method:notify", "method:success", "method:error"],
+          "errors": []
+        }
+      },
+      "basic_error_handling": {
+        "id": "pattern:basic_error_handling",
+        "description": "Logs an error and prints it to the console, but does not necessarily exit the script immediately.",
+        "example": {
+          "code": "if [ ! -d \"/non/existent/path\" ]; then\n  error \"Directory does not exist\" \"2\"\nfi\n\n# Output:\n#   ERROR   │ Directory does not exist\n# (Script continues execution)",
+          "validation": "An error message is displayed, and an entry is added to `$FRAMEWORK_LOGS`. The shell script proceeds with subsequent commands."
+        },
+        "related": {
+          "methods": ["method:error", "method:log"],
+          "errors": []
+        }
+      },
+      "critical_error_exit": {
+        "id": "pattern:critical_error_exit",
+        "description": "Prints an error, logs it, and forces script termination with a specific exit code for unrecoverable errors.",
+        "example": {
+          "code": "if [ -z \"$REQUIRED_VAR\" ]; then\n  panic \"Required variable not set!\" \"$ERROR_INVALID_OPTIONS\"\nfi\n\n# Output:\n#   ERROR   │ Required variable not set!\n# (Script exits with status $ERROR_INVALID_OPTIONS)",
+          "validation": "An error message is displayed and logged. The shell script immediately terminates with the specified exit code."
+        },
+        "related": {
+          "methods": ["method:panic", "method:log"],
+          "errors": ["error:ERROR"]
+        }
+      },
+      "installation_failure_exit": {
+        "id": "pattern:installation_failure_exit",
+        "description": "Specifically used during installation or critical setup steps to signal a fatal failure and exit.",
+        "example": {
+          "code": "if ! _check_dependencies; then\n  _abort \"Missing critical dependencies!\"\nfi\n\n# Output:\n# [ Install failed ! ]\n# (Script exits with status 27)",
+          "validation": "A prominent 'Install failed!' message is displayed. The script terminates with exit code 27 (hardcoded for install failures)."
+        },
+        "related": {
+          "methods": ["method:abort", "method:log"],
+          "errors": []
+        }
+      }
+    },
+    "errors": {
+      "ERROR": {
+        "id": "error:ERROR",
+        "type": "Shell Exit Code",
+        "symptoms": "Generic error message, unexpected behavior, script termination.",
+        "properties": "None, typically used as a default exit code.",
+        "scenarios": [
+          {
+            "trigger": "Any unhandled error where a specific error code isn't assigned.",
+            "example": "some_command_that_fails_unpredictably || panic",
+            "reason": "Catch-all error for unspecified failures."
+          }
+        ],
+        "diagnosis": "Review logs for context. Check preceding commands for non-zero exit codes.",
+        "resolution": "Identify the specific cause of the failure using debug logging. Add more specific error handling.",
+        "prevention": "Implement robust checks for preconditions and post-conditions.",
+        "handlingPatterns": "pattern:basic_error_handling, pattern:critical_error_exit",
+        "propagationBehavior": "Bubbles up to the caller unless explicitly caught (e.g., using `trap` or `||` logic)."
+      },
+      "ERROR_INVALID_OPTIONS": {
+        "id": "error:ERROR_INVALID_OPTIONS",
+        "type": "Shell Exit Code (2)",
+        "symptoms": "Command-line tool complains about missing arguments or unknown flags. Help message is often displayed.",
+        "properties": "None.",
+        "scenarios": [
+          {
+            "trigger": "Invoking `pj new` without specifying a recipe or project name.",
+            "example": "pj new",
+            "reason": "Missing required arguments for the command."
+          },
+          {
+            "trigger": "Invoking `pj archive` or `pj delete` without a project name.",
+            "example": "pj archive",
+            "reason": "Action cannot be performed without a target."
+          }
+        ],
+        "diagnosis": "Read the command's help output (`pj <command> help`) to understand expected arguments.",
+        "resolution": "Provide all required arguments and use correct flags.",
+        "prevention": "Consult documentation before running commands.",
+        "handlingPatterns": "Implement validation checks for arguments at the start of command `init` functions.",
+        "propagationBehavior": "Typically caught at the command's `parse_args` function and results in `panic`."
+      },
+      "ERROR_PROJECT_EXISTS": {
+        "id": "error:ERROR_PROJECT_EXISTS",
+        "type": "Shell Exit Code (3)",
+        "symptoms": "Attempting to create a new project, but a directory with the same name already exists in `$PROJECTS_PATH`.",
+        "properties": "None.",
+        "scenarios": [
+          {
+            "trigger": "Running `pj new my-project` when `~/projects/my-project` already exists.",
+            "example": "pj new base existing-project",
+            "reason": "Project creation conflict without explicit overwrite permission."
+          }
+        ],
+        "diagnosis": "Verify if the project indeed exists at the specified path. Check for typos in project name.",
+        "resolution": "Use a different project name, or if intentional, use the `--overwrite` flag: `pj new <recipe> <project-name> --overwrite`.",
+        "prevention": "Check for existence before creation, or always use `--overwrite` if desired.",
+        "handlingPatterns": "Handled internally by `pj new`'s `parse_args` function.",
+        "propagationBehavior": "Causes a `panic` in the `pj new` command."
+      },
+      "ERROR_PROJECT_NOT_EXISTS": {
+        "id": "error:ERROR_PROJECT_NOT_EXISTS",
+        "type": "Shell Exit Code (4)",
+        "symptoms": "Attempting to perform an operation (archive, delete) on a project that does not exist.",
+        "properties": "None.",
+        "scenarios": [
+          {
+            "trigger": "Running `pj archive non-existent-project`.",
+            "example": "pj archive unknown-project",
+            "reason": "Target project cannot be found."
+          }
+        ],
+        "diagnosis": "Verify the exact project name and its location under `$PROJECTS_PATH`.",
+        "resolution": "Provide the correct project name or ensure the project directory actually exists.",
+        "prevention": "Use `pj list` to confirm project names before operations.",
+        "handlingPatterns": "Handled internally by `archive` and `delete` command's `parse_args` functions.",
+        "propagationBehavior": "Causes a `panic` in the respective command."
+      },
+      "ERROR_UNKNOWN_PLUGIN": {
+        "id": "error:ERROR_UNKNOWN_PLUGIN",
+        "type": "Shell Exit Code (5)",
+        "symptoms": "The specified plugin (e.g., recipe for `pj new`) could not be found.",
+        "properties": "None.",
+        "scenarios": [
+          {
+            "trigger": "Running `pj new non-existent-recipe my-project`.",
+            "example": "pj new custom-flask-app my-app",
+            "reason": "The recipe file `custom-flask-app` does not exist in `$RECIPES_PATH` or `$CUSTOM_RECIPES_PATH`."
+          }
+        ],
+        "diagnosis": "Verify the recipe name is correct. Check if the recipe file exists in `~/.config/pj/plugins/recipes/` or core `src/plugins/recipes/`.",
+        "resolution": "Correct the recipe name, or create the custom recipe if intended.",
+        "prevention": "Use `pj new help` to see available recipes, or verify custom recipe paths.",
+        "handlingPatterns": "Handled internally by `pj new`'s `parse_args` function.",
+        "propagationBehavior": "Causes a `panic` in the `pj new` command."
+      },
+      "ERROR_UNKNOWN_FLAG": {
+        "id": "error:ERROR_UNKNOWN_FLAG",
+        "type": "Shell Exit Code (6)",
+        "symptoms": "An unrecognized flag is passed to a PJ command.",
+        "properties": "None.",
+        "scenarios": [
+          {
+            "trigger": "Passing an invalid flag like `--invalid-flag` to any PJ command.",
+            "example": "pj open --invalid-flag",
+            "reason": "The argument is not a defined global flag or command-specific option."
+          }
+        ],
+        "diagnosis": "Check the available flags for the command (`pj <command> help`) or global flags (`pj help`).",
+        "resolution": "Remove the unknown flag or replace it with a valid one.",
+        "prevention": "Refer to documentation for valid flags.",
+        "handlingPatterns": "Handled by the internal `parse_flag` function.",
+        "propagationBehavior": "Typically does not cause a `panic` directly, but `_remove_flags` will filter it out, and the command might then report `ERROR_INVALID_OPTIONS` if a required argument is missing due to the flag being mistaken for one."
+      },
+      "ERROR_ILLEGAL_OP": {
+        "id": "error:ERROR_ILLEGAL_OP",
+        "type": "Shell Exit Code (7)",
+        "symptoms": "An operation is attempted that is not permitted or is contextually invalid (e.g., deleting parent directories).",
+        "properties": "None.",
+        "scenarios": [
+          {
+            "trigger": "Attempting to `delete` or `archive` the current directory or parent directory using '.' or '..'.",
+            "example": "pj delete .",
+            "reason": "Security/safety measure to prevent accidental deletion of critical paths."
+          },
+          {
+            "trigger": "PJ cannot find or execute a command module's `index.sh` script.",
+            "example": "pj non-existent-command",
+            "reason": "Indicates a framework internal issue or a truly non-existent command."
+          }
+        ],
+        "diagnosis": "Review the specific command's `parse_args` function and the general `_module_start` logic.",
+        "resolution": "Avoid problematic arguments (e.g., use specific project names). Reinstall PJ if core modules are missing/corrupted.",
+        "prevention": "Adhere to documented command usage.",
+        "handlingPatterns": "Handled in command `parse_args` or `_module_start` leading to `panic`.",
+        "propagationBehavior": "Causes a `panic` for critical unrecoverable operations."
+      },
+      "ERROR_UNKNOWN_PROJECT": {
+        "id": "error:ERROR_UNKNOWN_PROJECT",
+        "type": "Shell Exit Code (8)",
+        "symptoms": "The project specified for an operation (e.g., `archive`, `delete`, `open`) cannot be located by PJ.",
+        "properties": "None.",
+        "scenarios": [
+          {
+            "trigger": "Trying to archive a project that was manually deleted.",
+            "example": "pj archive my-deleted-project",
+            "reason": "The project directory does not exist at `$PROJECTS_PATH/<project-name>`."
+          }
+        ],
+        "diagnosis": "Check for typos in the project name. Verify the project's physical location and `PROJECTS_PATH` configuration.",
+        "resolution": "Correct the project name, or ensure the project exists in the expected location.",
+        "prevention": "Use `pj list` to verify project names before critical operations.",
+        "handlingPatterns": "Handled in `parse_args` functions of relevant commands (archive, delete, open).",
+        "propagationBehavior": "Causes a `panic` in the respective command."
+      },
+      "NOT_A_FLAG": {
+        "id": "error:NOT_A_FLAG",
+        "type": "Shell Exit Code (997)",
+        "symptoms": "Internal flag parsing mechanism indicating that a given argument is not recognized as a global flag.",
+        "properties": "None.",
+        "scenarios": [
+          {
+            "trigger": "A non-flag argument is passed to `parse_flag`.",
+            "example": "parse_flag \"my-project\"",
+            "reason": "This is expected behavior when processing regular command arguments."
+          }
+        ],
+        "diagnosis": "Not typically an 'error' for the end-user, but an internal signal.",
+        "resolution": "N/A (internal).",
+        "prevention": "N/A (internal).",
+        "handlingPatterns": "Used by `_remove_flags` to distinguish between flags and command arguments.",
+        "propagationBehavior": "Returns to caller (`_remove_flags`) to decide further action."
+      }
+    }
+  }
+}

@@ -19,12 +19,13 @@ _create_session() {
   session_name="$2"
 
   # a script that takes the two params above. Use them as you may
-  # TODO: deprecate
+  # TODO: deprecate .project in favor of .pj
   setup="$path/.project"
 
-  [ -x "$path/.project" ] || {
-    [ -x "$path/.pj" ] && setup="$path/.pj" || setup=""
-  }
+  # migrate from .project to .pj
+  [ -x "$path/.project" ] && mv "$path/.project" "$path/.pj"
+
+  [ -x "$path/.pj" ] && setup="$path/.pj" || setup=""
 
   # a file with enviroment variables, with the following specs:
   # entries are formatted as ENV_VARIABLE=myValue

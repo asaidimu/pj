@@ -1,0 +1,203 @@
+#compdef pj
+
+# Zsh completion for pj command
+# Place this file in your fpath (e.g., /usr/share/zsh/site-functions/_pj)
+# or source it directly in your .zshrc
+
+_pj() {
+    local context state line
+    typeset -A opt_args
+
+    # Main command structure
+    _arguments -C \
+        '(-v --version)'{-v,--version}'[show command version]' \
+        '1: :_pj_commands' \
+        '*:: :->args' && return 0
+
+    case $state in
+        args)
+            case $words[1] in
+                help)
+                    _pj_help_completion
+                    ;;
+                archive|delete)
+                    _pj_project_completion
+                    ;;
+                new)
+                    _pj_new_completion
+                    ;;
+                list|refresh|update|open)
+                    # These commands don't need additional completion
+                    # open uses fzf finder, others are standalone
+                    ;;
+                analyze|commit|document)
+                    _pj_project_analysis_completion
+                    ;;
+                *)
+                    # Check if the command supports help
+                    if [[ $words[-1] == "help" ]]; then
+                        return 0
+                    fi
+                    ;;
+            esac
+            ;;
+    esac
+
+    return 1
+}
+
+# Complete main commands
+_pj_commands() {
+    local -a commands
+    commands=(
+        'archive:archives a project'
+        'delete:deletes a project, use with caution!'
+        'example:example module'
+        'help:show help message'
+        'list:list active projects'
+        'new:creates a project from a recipe'
+        'open:Initialises the environment for a project'
+        'refresh:(re)generates list of projects'
+        'update:upgrades the framework'
+        'analyze:analyze codebase'
+        'commit:generate a conventional commit message'
+        'document:generate a standard project README'
+    )
+    _describe 'commands' commands
+}
+
+# Complete help subcommands
+_pj_help_completion() {
+    local -a help_commands
+    help_commands=(
+        'archive:show help for archive command'
+        'delete:show help for delete command'
+        'example:show help for example command'
+        'list:show help for list command'
+        'new:show help for new command'
+        'open:show help for open command'
+        'refresh:show help for refresh command'
+        'update:show help for update command'
+        'analyze:show help for analyze command'
+        'commit:show help for commit command'
+        'document:show help for document command'
+    )
+    _describe 'help commands' help_commands
+}
+
+# Get list of projects dynamically
+_pj_get_projects() {
+    local -a projects
+    # Execute pj list and capture output, handling potential errors gracefully
+    if command -v pj >/dev/null 2>&1; then
+        projects=(${(f)"$(pj list 2>/dev/null)"})
+        if [[ $? -eq 0 && ${#projects[@]} -gt 0 ]]; then
+            printf '%s\n' "${projects[@]}"
+        fi
+    fi
+}
+
+# Get available recipes dynamically from pj new help
+_pj_get_recipes() {
+    local -a recipes
+    local help_output recipe_section
+
+    if command -v pj >/dev/null 2>&1; then
+        help_output=$(pj new help 2>/dev/null)
+        if [[ $? -eq 0 ]]; then
+            # Extract recipes from the help output
+            # Look for lines that match the pattern: "  recipename  --  description"
+            recipes=(${(f)"$(echo "$help_output" | \
+                awk '/AVAILABLE RECIPES/,0 {
+                    if ($0 ~ /^[[:space:]]*[a-zA-Z][a-zA-Z0-9_-]*[[:space:]]*--[[:space:]]*/) {
+                        match($0, /^[[:space:]]*([a-zA-Z][a-zA-Z0-9_-]*)[[:space:]]*--[[:space:]]*(.*)$/, arr)
+                        if (arr[1] && arr[2]) {
+                            print arr[1] ":" arr[2]
+                        }
+                    }
+                }' 2>/dev/null)"})
+        fi
+    fi
+
+    if [[ ${#recipes[@]} -gt 0 ]]; then
+        printf '%s\n' "${recipes[@]}"
+    fi
+}
+
+# Complete project names for commands that operate on projects
+_pj_project_completion() {
+    local -a projects
+    projects=(${(f)"$(_pj_get_projects)"})
+
+    if [[ ${#projects[@]} -gt 0 ]]; then
+        _describe 'projects' projects
+    else
+        _message 'no projects found (run pj refresh?)'
+    fi
+
+    # Also allow help completion
+    if [[ $words[-1] != "help" ]]; then
+        _arguments \
+            ':: :->help_option'
+        case $state in
+            help_option)
+                _values 'help' 'help[show command help]'
+                ;;
+        esac
+    fi
+}
+
+# Complete for project analysis commands (analyze, commit, document)
+_pj_project_analysis_completion() {
+    # These might work on current directory or specific projects
+    # For now, just allow help completion
+    if [[ $words[-1] != "help" ]]; then
+        _arguments \
+            ':: :->help_option'
+        case $state in
+            help_option)
+                _values 'help' 'help[show command help]'
+                ;;
+        esac
+    fi
+}
+
+# Complete pj new command with recipes and options
+_pj_new_completion() {
+    local -a recipes
+
+    # Get available recipes dynamically
+    recipes=(${(f)"$(_pj_get_recipes)"})
+
+    # Handle different positions in the command
+    case $CURRENT in
+        2)
+            # First argument: recipe name
+            if [[ ${#recipes[@]} -gt 0 ]]; then
+                _describe 'recipes' recipes
+            else
+                _message 'no recipes available (run pj new help to see recipes)'
+            fi
+            ;;
+        3)
+            # Second argument: project name (free text)
+            _message 'project name'
+            ;;
+        *)
+            # Additional arguments: flags or help
+            _arguments \
+                '(-o --overwrite)'{-o,--overwrite}'[overwrite project]' \
+                ':: :->help_option'
+            case $state in
+                help_option)
+                    if [[ $words[-1] != "help" ]]; then
+                        _values 'help' 'help[show command help]'
+                    fi
+                    ;;
+            esac
+            ;;
+    esac
+}
+
+# Initialize completion
+_pj "$@"
