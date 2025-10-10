@@ -4,7 +4,7 @@
 # summary: generate a conventional commit message
 # --------
 
-PLUGIN_DIR="$CUSTOM_PLUGINS_PATH/commit"
+PLUGIN_DIR="$FRAMEWORK_ROUTE/commit"
 
 help() {
   cat <<EOF

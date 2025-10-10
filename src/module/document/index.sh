@@ -4,7 +4,7 @@
 # summary: generate a standard project README
 # --------
 
-PLUGIN_DIR="$CUSTOM_PLUGINS_PATH/document"
+PLUGIN_DIR="$FRAMEWORK_ROUTE/commit"
 
 help() {
   cat <<EOF

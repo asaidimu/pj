@@ -4,7 +4,7 @@
 # summary: analyze codebase
 # --------
 
-PLUGIN_DIR="$CUSTOM_PLUGINS_PATH/analyze"
+PLUGIN_DIR="$FRAMEWORK_ROUTE/commit"
 
 help() {
   cat <<EOF
