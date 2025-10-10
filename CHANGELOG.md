@@ -1,3 +1,10 @@
+# [1.8.0](https://github.com/asaidimu/pj/compare/v1.7.2...v1.8.0) (2025-10-10)
+
+
+### Features
+
+* **plugins:** add AI-powered analysis, commit, and documentation tools ([ab93d72](https://github.com/asaidimu/pj/commit/ab93d7236a8cfc83c230e31ffb5324b9bf52416d))
+
 ## [1.7.2](https://github.com/asaidimu/pj/compare/v1.7.1...v1.7.2) (2025-06-16)
 
 
