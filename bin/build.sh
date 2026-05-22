@@ -9,8 +9,8 @@ _update_template(){
   template_file="$1"; shift;
 
   for opt in $@; do
-    key=$(echo "$opt" | sed -E "s/(\w+*):.*$/\\\{\\\{\1\\\}\\\}/g");
-    val=$(echo "$opt" | sed -E "s/\w+*:(.*$)/\1/g");
+    key=$(echo "$opt" | sed -E "s/(\w+):.*$/\\\{\\\{\1\\\}\\\}/g");
+    val=$(echo "$opt" | sed -E "s/\w+:(.*$)/\1/g");
     sed -E "s|${key}|${val}|g" -i $template_file
   done
 }
@@ -19,7 +19,7 @@ _build(){
    tar --exclude="./package.json" --exclude="./yarn.lock" --exclude="./install.sh" -Jcf pj.tar.xz ./*
    cp assets/installer.sh install.sh
    _update_template "./install.sh" "version:$VERSION" "url:$SCRIPT_URL"
-   echo "export SOURCE=\$(cat <<EOF" >> "./install.sh"
+   echo "SOURCE=\$(cat <<EOF" >> "./install.sh"
     base64 "./pj.tar.xz" >> "./install.sh"
    cat >> "./install.sh" <<END
 EOF

@@ -24,7 +24,7 @@ _extract() {
     trap "rm -f '$TMPFILE'; exit 1" 2       # INT
     trap "rm -f '$TMPFILE'; exit 1" 1 15    # HUP TERM
 
-    echo "$SOURCE" | base64 --decode > $TMPFILE
+    printf "%s" "$SOURCE" | base64 --decode > $TMPFILE
     mkdir -p $FRAMEWORK_PATH
     cd $FRAMEWORK_PATH
     tar -Jxf $TMPFILE
