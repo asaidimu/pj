@@ -1,3 +1,10 @@
+## [1.8.1](https://github.com/asaidimu/pj/compare/v1.8.0...v1.8.1) (2026-05-22)
+
+
+### Bug Fixes
+
+* fix installer ([19ff313](https://github.com/asaidimu/pj/commit/19ff313c32963ed04eb4f7aa7c7490fb776fcd85))
+
 # [1.8.0](https://github.com/asaidimu/pj/compare/v1.7.2...v1.8.0) (2025-10-10)
 
 
