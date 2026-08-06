@@ -1,3 +1,10 @@
+## [1.8.2](https://github.com/asaidimu/pj/compare/v1.8.1...v1.8.2) (2026-08-06)
+
+
+### Bug Fixes
+
+* **deps:** update github actions to latest versions ([9c9f5b2](https://github.com/asaidimu/pj/commit/9c9f5b26108cb201bdb8ee6d28cb1e3041137d8d))
+
 ## [1.8.1](https://github.com/asaidimu/pj/compare/v1.8.0...v1.8.1) (2026-05-22)
 
 
