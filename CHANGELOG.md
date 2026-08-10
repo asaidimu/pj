@@ -1,3 +1,20 @@
+# [2.0.0](https://github.com/asaidimu/pj/compare/v1.8.2...v2.0.0) (2026-08-10)
+
+
+* feat(cli)!: introduce dynamic shell completion and environment refactor ([2047bdb](https://github.com/asaidimu/pj/commit/2047bdb6a6b484c45e778cbe0c00d6e197c81dd1))
+
+
+### BREAKING CHANGES
+
+* The framework environment has been reorganized. User configurations in ~/.config/pj/env.sh should be updated to remove hard-coded exports that are now defaults. Removed deprecated variables: DEBUG, DEBUG_MODULE_NAME, DEFAULT_FRAMEWORK_ROUTE, FRAMEWORK_BIN, FRAMEWORK_MODULE_NAME, PLUGINS_PATH, and NOT_A_FLAG. The log file location and name have changed from date-stamped files to a single static pj.log.
+
+- Added pj completion command to auto-generate zsh and bash completions
+- Implemented dynamic completion generator using module tags
+- Added CI testing suite for multiple shells
+- Standardized environment initialization and path resolution
+- Refactored internal I/O and color utilities for POSIX compliance
+- Updated documentation to reflect new completion usage and environment variables
+
 ## [1.8.2](https://github.com/asaidimu/pj/compare/v1.8.1...v1.8.2) (2026-08-06)
 
 
