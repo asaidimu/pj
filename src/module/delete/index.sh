@@ -1,6 +1,7 @@
 # --------
 # command: delete
 # summary: deletes a project, use with caution !
+# completion: projects
 # --------
 
 help() {
@@ -23,19 +24,17 @@ EOF
 parse_args() {
   [ -z "$1" ] && {
     help
-    error "no input provided!" "$ERROR_INVALID_OPTIONS"
+    panic "no input provided!" "$ERROR_INVALID_OPTIONS"
   }
 
-  [ "$1" = "help" ] && { help; return 2; }
-
   [ "$1" = "." -o "$1" = ".." ] && {
-    error "action cannot be perfomed" "$ERROR_ILLEGAL_OP"
+    panic "action cannot be perfomed" "$ERROR_ILLEGAL_OP"
   }
 
   setup "$1"
 
   [ -d "$PROJECT_PATH" ] || {
-    error "project $1 not found under $PROJECTS_PATH" "$ERR0R_UNKNOWN_PROJECT"
+    panic "project $1 not found under $PROJECTS_PATH" "$ERROR_UNKNOWN_PROJECT"
   }
 }
 
@@ -57,7 +56,10 @@ rm_project() {
 }
 
 init() {
-  export FRAMEWORK_MODULE_NAME="delete"
+  if [ "$1" = "help" ]; then
+    help
+    return 0
+  fi
   parse_args "$@" && rm_project
 }
 

@@ -12,17 +12,16 @@ ABOUT=$(cat <<EOF_ABOUT
 EOF_ABOUT
 )
 
-# Helper to run hooks: run core first, then user (if both exist)
-# TODO: Make this function work
+# Run hooks for a command: core hook first, then user hook (if they exist).
+# Core hooks live next to the module; user hooks override/extend them.
 _run_hook() {
-  cmd="$1"
+  hook_cmd="$1"
   hook_name="$2"
   shift 2
 
-  user_hook="$CUSTOM_PLUGINS_PATH/$cmd/$hook_name"
-  core_hook="$module_dir/$cmd/$hook_name"
+  core_hook="$module_dir/$hook_name"
+  user_hook="$CUSTOM_PLUGINS_PATH/$hook_cmd/$hook_name"
 
-  # Run core hook first, then user hook (if they exist and are executable)
   if [ -x "$core_hook" ]; then
     . "$core_hook" "$@"
   fi
@@ -40,11 +39,10 @@ _module_start() {
   fi
 
   module_dir="$FRAMEWORK_ROUTE/${cmd}"
-  # User route should take precedence
+  # User route takes precedence
   user_route="$CUSTOM_PLUGINS_PATH/${cmd}/index.sh"
   route="$module_dir/index.sh"
 
-  # Check user_route first, then fall back to default route
   if [ -e "$user_route" ]; then
     route="$user_route"
   elif [ ! -e "$route" ]; then
@@ -54,24 +52,20 @@ _module_start() {
 
   log "Executing module [ $cmd ]"
 
-  # Save original arguments for hooks and trap
+  # Save original arguments for hooks
   export MODULE_ORIG_ARGS="$*"
   export MODULE_ORIG_ARGC=$#
 
   # Run pre_hook with original args
   _run_hook "$cmd" pre_hook.sh "$@"
 
-  # Trap EXIT to run post_hook with original args
-  trap '_run_hook "$cmd" post_hook.sh "$MODULE_ORIG_ARGS"' EXIT
+  # Run post_hook on exit, preserving the module's exit status
+  trap '_status=$?; _run_hook "$cmd" post_hook.sh $MODULE_ORIG_ARGS; exit "$_status"' EXIT
 
-  # Shift arguments if any exist
-  shift 2>/dev/null || true
+  # Drop the command name from the arguments before sourcing the module
+  [ "$#" -gt 0 ] && shift
 
-  # Source the module script with error handling
-  if ! . "$route"; then
-    error_msg="Failed to execute module $(bold_yellow "$cmd")"
-    panic "$error_msg" "$ERROR_ILLEGAL_OP"
-  fi
+  . "$route"
 }
 
 # -- remove_flags --

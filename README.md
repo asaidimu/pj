@@ -55,6 +55,7 @@ pj <command> [options]
 - `pj list` – List all projects.
 - `pj refresh` – Regenerate the project list.
 - `pj update` – Update PJ to the latest version.
+- `pj completion` – (Re)generate shell completions.
 - `pj help` – Display help and available commands.
 
 For detailed help on any command:
@@ -62,6 +63,35 @@ For detailed help on any command:
 ```sh
 pj <command> help
 ```
+
+### Shell Completions
+
+PJ ships a completion generator (`src/completion/generate.sh`) that reads the
+`# summary` (and optional `# completion:`) tags from every module and plugin
+and emits tab-completion for both zsh and bash. Completions are generated and
+installed automatically by the installer:
+
+```
+~/.local/share/zsh/site-functions/_pj
+~/.local/share/bash-completion/completions/pj
+```
+
+To regenerate after adding or removing modules or plugins:
+
+```sh
+pj completion            # regenerate both shells
+pj completion zsh        # zsh only
+pj completion bash       # bash only
+```
+
+`# completion:` tells the generator which operand the command accepts:
+
+| Tag                     | What it completes              |
+|-------------------------|--------------------------------|
+| (unset) / `none`        | no operand completion          |
+| `projects`              | project names (`pj list`)      |
+| `recipes`               | recipe names (`pj new help`)   |
+| `analysis`              | analyze/commit/document style  |
 
 ### Quickstart Example
 
@@ -124,6 +154,11 @@ Common environment variables:
 | `PROJECTS_PATH`     | `$HOME/projects`            | Directory for storing projects     |
 | `CUSTOM_PLUGINS_PATH` | `~/.config/pj/plugins`    | Directory for custom plugins       |
 | `CUSTOM_RECIPES_PATH` | `~/.config/pj/plugins/recipes` | Directory for custom recipe files |
+
+These defaults are applied automatically when the variables are unset, and
+runtime directories (including `PROJECTS_PATH`) are created on first run.
+Derived paths (`PROJECTS_DATA`, `ARCHIVE_PATH`, `PROJECTS_LIST`, …) are
+computed *after* your `env.sh` is loaded, so overrides always take effect.
 
 Changes to `env.sh` are applied automatically on the next PJ command run.
 
@@ -229,6 +264,11 @@ Plugins should:
 - Include a `help()` function for usage information.
 - Handle arguments passed to `init()`.
 
+Modules declare a `# summary: <one-liner>` tag at the top of their
+`index.sh`; it feeds `pj help` and the shell completion generator. An
+optional `# completion: <type>` tag tells the generator which operands to
+complete (see [Shell Completions](#shell-completions)):
+
 #### Example Plugin
 
 ```sh
@@ -270,6 +310,20 @@ Hooks are stored in the module directory and receive the same arguments and envi
 run_command refresh
 ```
 
+## Testing
+
+PJ ships a POSIX test harness that runs the framework across every available
+shell in an isolated sandbox:
+
+```sh
+sh tests/run.sh                 # every available shell (sh, bash, zsh, dash, ksh)
+sh tests/run.sh bash zsh        # a specific subset
+```
+
+The suite covers project creation, listing, archiving, deletion errors, flag
+parsing, the project-list generator, and default path handling. It is also
+wired into CI (`.github/workflows/test.yml`) across all five shells.
+
 ## Troubleshooting
 
 - **Missing Dependencies**: PJ alerts if a required tool is missing.
@@ -283,13 +337,15 @@ run_command refresh
 
 ## POSIX Compliance
 
-PJ is POSIX-compliant and tested on:
+PJ is POSIX-compliant and tested against:
 - dash
 - bash (POSIX mode)
 - zsh (sh emulation)
 - ksh
+- sh
 
-Report compatibility issues via GitHub.
+Every commit runs `tests/run.sh` across all five shells in CI
+(`.github/workflows/test.yml`). Report compatibility issues via GitHub.
 
 ## License
 

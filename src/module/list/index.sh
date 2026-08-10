@@ -24,31 +24,31 @@ EOF
 }
 
 parse_args() {
-  [ "$1" = "help" ] && { help; return 0; }
-
   [ "$1" = "." -o "$1" = ".." ] && {
-    error "action cannot be perfomed" "$ERROR_ILLEGAL_OP"
+    panic "action cannot be perfomed" "$ERROR_ILLEGAL_OP"
   }
 
   setup "$1"
 
   [ -d "$PROJECT_PATH" ] || {
-    error "project $1 not found under $PROJECTS_PATH" "$ERR0R_UNKNOWN_PROJECT"
+    panic "project $1 not found under $PROJECTS_PATH" "$ERROR_UNKNOWN_PROJECT"
   }
 }
 
 init() {
   unset -f init
 
-  [ -z "$1" ] && {
+  if [ -z "$1" ]; then
     ls "$PROJECTS_PATH" | cat
-    return
-  }
+    return 0
+  fi
 
-  help
-  return 0
+  if [ "$1" = "help" ]; then
+    help
+    return 0
+  fi
 
-  export FRAMEWORK_MODULE_NAME="open"
+  parse_args "$@"
 }
 
 init "$@"

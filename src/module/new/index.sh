@@ -1,12 +1,13 @@
 # --------
 # summary: creates a project from a recipe
+# completion: recipes
 # --------
 
 list() {
-  path="$1"
-  [ -d $path ] || return
-  for recipe in $(ls "$path"); do
-    sum=$(grep "DESCRIPTION" "$path/$recipe" | sed -E "s/^.*:\s//g")
+  dir="$1"
+  [ -d "$dir" ] || return
+  for recipe in $(ls "$dir"); do
+    sum=$(grep "DESCRIPTION" "$dir/$recipe" | sed -E "s/^.*:[[:space:]]//g")
     echo "$recipe:$sum" | awk -F':' '{printf "    %-10s --   %s\n", $1, $2}'
   done
 }
@@ -48,8 +49,6 @@ parse_args() {
     panic "no input provided!" "$ERROR_INVALID_OPTIONS"
   }
 
-  [ "$plugin" = "help" ] && { help; return 2; }
-
   [ -e "$CUSTOM_RECIPES_PATH/$1" ] && plugin="$CUSTOM_RECIPES_PATH/$1" || plugin="$RECIPES_PATH/$1"
 
   if [ -x "$plugin" ]; then
@@ -59,8 +58,7 @@ parse_args() {
     project="$1"
     inform "Using base recipe"
   else
-    panic "Recipe $1 not found!" "$ERR0R_UNKNOWN_PLUGIN"
-    help
+    panic "Recipe $1 not found!" "$ERROR_UNKNOWN_PLUGIN"
   fi
 
   [ -z "$project" ] && {
@@ -73,7 +71,7 @@ parse_args() {
   [ "$FLAG_OVERWRITE" -eq 1 ] && return 0
 
   [ -d "$PROJECT_PATH" ] && {
-    panic "project $project found under $PROJECTS_PATH" "$ERR0R_PROJECT_EXISTS"
+    panic "project $project found under $PROJECTS_PATH" "$ERROR_PROJECT_EXISTS"
   }
 
   return 0
@@ -81,6 +79,10 @@ parse_args() {
 
 init() {
   unset -f init
+  if [ "$1" = "help" ]; then
+    help
+    return 0
+  fi
   parse_args "$@" && . "$PROJECT_PLUGIN"
 }
 

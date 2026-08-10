@@ -75,6 +75,7 @@ _extract() {
 
 _install_script() {
     sleep 0.2
+    mkdir -p "$(dirname "$FRAMEWORK_BINARY")"
 cat > $FRAMEWORK_BINARY << EOF
 #!/usr/bin/env sh
 
@@ -96,25 +97,30 @@ EOF
 }
 
 _install_completion() {
-    if command -v zsh >/dev/null 2>&1; then
-        local completion_dir="$HOME/.local/share/zsh/site-functions"
-        local completion_source="$FRAMEWORK_PATH/src/completion/zsh/_pj"
-        local completion_target="$completion_dir/_pj"
-        # Create completion directory if it doesn't exist
+    local generator="$FRAMEWORK_PATH/src/completion/generate.sh"
+    [ -f "$generator" ] || return 1
+
+    # bash
+    if command -v bash >/dev/null 2>&1; then
+        local completion_dir="$HOME/.local/share/bash-completion/completions"
+        local completion_target="$completion_dir/$FRAMEWORK_NAME"
         mkdir -p "$completion_dir"
-        # Remove existing symlink/file if it exists
         if [ -e "$completion_target" ] || [ -L "$completion_target" ]; then
             rm -f "$completion_target"
         fi
-        # Create symlink to completion file
-        if [ -f "$completion_source" ]; then
-            ln -sf "$completion_source" "$completion_target"
-            return 0
-        else
-            return 1
-        fi
+        sh "$generator" bash > "$completion_target" 2>/dev/null || return 1
     fi
-    return 0  # Not an error if zsh isn't available
+    # zsh
+    if command -v zsh >/dev/null 2>&1; then
+        local completion_dir="$HOME/.local/share/zsh/site-functions"
+        local completion_target="$completion_dir/_$FRAMEWORK_NAME"
+        mkdir -p "$completion_dir"
+        if [ -e "$completion_target" ] || [ -L "$completion_target" ]; then
+            rm -f "$completion_target"
+        fi
+        sh "$generator" zsh > "$completion_target" 2>/dev/null || return 1
+    fi
+    return 0  # Not an error if neither shell is available
 }
 
 _main(){
@@ -154,7 +160,7 @@ _main(){
     # -- install completion --
     _install_completion &
     pid=$!
-    _load "Installing completions" "Zsh completion installed" $pid
+    _load "Installing completions" "Shell completions installed" $pid
     wait $pid
 
     _log "Installed  $(bold $(blue "$FRAMEWORK_NAME-$FRAMEWORK_VERSION"))\n"
@@ -283,8 +289,7 @@ _load() {
 
         printf "$d"
 
-        ps cax | grep -E "\s?$pid" 2>&1 > /dev/null
-        if [ $? -ne 0 ]; then
+        if ! kill -0 "$pid" 2>/dev/null; then
             waiting=0
         fi
         sleep 0.3
@@ -293,6 +298,9 @@ _load() {
     _log "${msg}\n"
 }
 
+# NOTE: the banner artwork is duplicated in src/utils/io.sh (the framework's
+# banner()). Keep the two in sync. This installer is intentionally
+# self-contained because it runs before pj is installed.
 _banner(){
     duration=0.03
     printf "\n" && sleep $duration

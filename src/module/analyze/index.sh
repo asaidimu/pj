@@ -2,6 +2,7 @@
 
 # --------
 # summary: analyze codebase
+# completion: analysis
 # --------
 
 PLUGIN_DIR="$FRAMEWORK_ROUTE/commit"

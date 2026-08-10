@@ -2,11 +2,19 @@ time_stamp(){
   echo "`date +%H:%M:%S`"
 }
 
-repl() { printf "$1"'%.s' $(eval "echo {1.."$(($2))"}"); }
+repl() {
+  char="$1"
+  count="$2"
+  i=0
+  while [ "$i" -lt "$count" ]; do
+    printf "%s" "$char"
+    i=$((i + 1))
+  done
+}
 
 label(){
   color="$1"
-  level=$(echo "$2" | sed -E "s/^(.*)/\U\1/g")
+  level=$(echo "$2" | tr '[:lower:]' '[:upper:]')
   size=$(printf "$level" | wc -m)
   size=$((8 - size))
   printf "$($color "$(repl " " $size)${level} │") "
@@ -28,13 +36,14 @@ question() {
     property="$1"
     default="$2"
 
-    prompt="$(echo `bold_grey  'question'`): $property"
+    prompt="$(bold_grey 'question'): $property"
 
     [ -n "$default" ] && prompt="$prompt ($(blue "$default"))"
 
     prompt="$prompt: "
 
-    read -p "$prompt" input
+    printf "%s" "$prompt"
+    read -r input
 
     [ -z "$input" ] && input=$default
 
@@ -88,27 +97,24 @@ panic() {
   exit $error
 }
 
-abort(){
-    [ -n "$1" ] && message=$1 || message="an unexpected error occured !"
-    [ -n "$2" ] && error=$2 || error=$ERROR
-
-    log "ERROR ($error): $message"
-    printf "$(bold_red "[") $message $(bold_red "]")\n"
-    exit $error
-}
-
 notify(){
-  [ $FLAG_SILENT -eq 0 ] || return
+  # report the outcome of the previous command (its exit status)
+  _status=$?
 
-  status=$?; success_msg="$1"; failure_msg="$2";
+  [ "$FLAG_SILENT" -eq 0 ] || return "$_status"
 
-  [ $status -eq 0 ] && {
-    success "$success_msg" && return
-  } || {
-    error "$failure_msg" "$status"
-  }
+  success_msg="$1"; failure_msg="$2";
+
+  if [ "$_status" -eq 0 ]; then
+    success "$success_msg"
+  else
+    error "$failure_msg" "$_status"
+  fi
+  return "$_status"
 }
 
+# NOTE: the banner artwork is duplicated in assets/installer.sh (self-contained
+# installer). Keep the two in sync when changing it.
 banner(){
     duration=0.02
     printf "\n" && sleep $duration
@@ -116,19 +122,19 @@ banner(){
     bold_yellow '          ,ggggggggggg,\n'        && sleep $duration
     bold_yellow '          dP"""88""""""Y8,\n'     && sleep $duration
     bold_yellow '          Yb,  88      `8b \n'    && sleep $duration
-    bold_yellow '           `"  88      ,8P gg\n'  && sleep $duration
-    bold_yellow '               88aaaad8P"  ""\n'  && sleep $duration
-    bold_yellow '               88"""""     gg\n'  && sleep $duration
-    bold_yellow '               88          8I\n'  && sleep $duration
-    bold_yellow '               88         ,8I\n'  && sleep $duration
-    bold_yellow '               88       _,d8I\n'  && sleep $duration
-    bold_yellow '               88     888P"888\n' && sleep $duration
-    bold_yellow '                         ,d8I\n'  && sleep $duration
-    bold_yellow "                       ,dP'8I\n"  && sleep $duration
-    bold_yellow '                      ,8"  8I\n'  && sleep $duration
-    bold_yellow '                      I8   8I\n'  && sleep $duration
-    bold_yellow '                      `8, ,8I\n'  && sleep $duration
-    bold_yellow '                       `Y8P\n'    && sleep $duration
+    bold_yellow '           `"  88      ,8P  ' && blue 'ggggg,\n'  && sleep $duration
+    bold_yellow '               88aaaad8P"   ' && blue 'dP"  Y8,\n'  && sleep $duration
+    bold_yellow '               88"""""      ' && blue 'Yb,  gg\n'  && sleep $duration
+    bold_yellow '               88           ' && blue ' `"  8I\n'  && sleep $duration
+    bold_yellow '               88           ' && blue '    ,8I\n'  && sleep $duration
+    bold_yellow '               88           ' && blue '  _,d8I\n'  && sleep $duration
+    bold_yellow '               88           ' && blue '888P"888\n' && sleep $duration
+    bold_yellow '                            ' && blue '   ,d8I\n'  && sleep $duration
+    bold_yellow "                            " && blue " ,dP'8I\n"  && sleep $duration
+    bold_yellow '                            ' && blue ',8"  8I\n'  && sleep $duration
+    bold_yellow '                            ' && blue 'I8   8I\n'  && sleep $duration
+    bold_yellow '                            ' && blue '`8, ,8I\n'  && sleep $duration
+    bold_yellow '                            ' && blue ' `Y8P\n'    && sleep $duration
     printf "\n"
     printf "\n"
 }
@@ -170,8 +176,7 @@ load() {
 
         printf "$d"
 
-        ps cax | grep -E "\s?$pid" 2>&1 > /dev/null
-        if [ $? -ne 0 ]; then
+        if ! kill -0 "$pid" 2>/dev/null; then
             waiting=0
         fi
         sleep 0.3
@@ -188,11 +193,4 @@ show_version(){
     load "Checking Version" $pid
     wait $pid
     bold_green "\t     Version $(echo $FRAMEWORK_VERSION | sed -E 's/v//g')\n"
-}
-
-check_command() {
-    if ! command -v $1 &> /dev/null; then
-        abort "$1 is required but not installed."
-        exit 1
-    fi
 }

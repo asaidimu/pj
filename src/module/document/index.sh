@@ -2,6 +2,7 @@
 
 # --------
 # summary: generate a standard project README
+# completion: analysis
 # --------
 
 PLUGIN_DIR="$FRAMEWORK_ROUTE/commit"

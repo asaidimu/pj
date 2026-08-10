@@ -1,5 +1,6 @@
 # --------
 # summary: archives a project
+# completion: projects
 # --------
 
 help() {
@@ -38,10 +39,6 @@ parse_args() {
     panic "no input provided!" "$ERROR_INVALID_OPTIONS"
   }
 
-  if [ "$1" = "help" ]; then
-       help && return 2
-  fi
-
   [ "$1" = "." -o "$1" = ".." ] && {
     panic "action cannot be perfomed" "$ERROR_ILLEGAL_OP"
   }
@@ -49,12 +46,15 @@ parse_args() {
   setup "$1"
 
   [ -d "$PROJECT_PATH" ] || {
-    panic "project $1 not found under $PROJECTS_PATH" "$ERR0R_UNKNOWN_PROJECT"
+    panic "project $1 not found under $PROJECTS_PATH" "$ERROR_UNKNOWN_PROJECT"
   }
 }
 
 init() {
-  export FRAMEWORK_MODULE_NAME="archive"
+  if [ "$1" = "help" ]; then
+    help
+    return 0
+  fi
   parse_args "$@" && archive_project
 }
 

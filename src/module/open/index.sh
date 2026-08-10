@@ -18,14 +18,11 @@ _create_session() {
   path="$1"
   session_name="$2"
 
-  # a script that takes the two params above. Use them as you may
-  # TODO: deprecate .project in favor of .pj
-  setup="$path/.project"
-
-  # migrate from .project to .pj
+  # the sessionizer script; legacy .project files are migrated to .pj
   [ -x "$path/.project" ] && mv "$path/.project" "$path/.pj"
 
-  [ -x "$path/.pj" ] && setup="$path/.pj" || setup=""
+  setup=""
+  [ -x "$path/.pj" ] && setup="$path/.pj"
 
   # a file with enviroment variables, with the following specs:
   # entries are formatted as ENV_VARIABLE=myValue

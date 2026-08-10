@@ -2,6 +2,7 @@
 
 # --------
 # summary: generate a conventional commit message
+# completion: analysis
 # --------
 
 PLUGIN_DIR="$FRAMEWORK_ROUTE/commit"
