@@ -1,5 +1,11 @@
 #!/bin/sh
-# src/utils/flags.sh - global flag parsing
+# src/utils/flags.sh - global flag state
+#
+# Global flags are consumed by run_command (src/index.sh) BEFORE the
+# command word: -s/--silent, -o/--overwrite, --color/--no-color,
+# -h/--help, -v/--version. After the command word every flag belongs to
+# the module itself (e.g. `pj commit -s` is --staged, `pj analyze -x`
+# is --exclude), so there is no ambiguity to resolve.
 
 # -- flag state (reset on every run) --
 export FLAG_SILENT=0
@@ -12,38 +18,3 @@ if [ -t 1 ]; then
 else
   export FLAG_COLORED_OUTPUT=0
 fi
-
-# sentinel returned by parse_flag for non-flag arguments
-NOT_A_FLAG=997
-
-parse_flag() {
-  case "$1" in
-    -s|--silent)
-      export FLAG_SILENT=1
-      return 0
-      ;;
-    -o|--overwrite)
-      export FLAG_OVERWRITE=1
-      return 0
-      ;;
-    --color)
-      export FLAG_COLORED_OUTPUT=1
-      return 0
-      ;;
-    --no-color)
-      export FLAG_COLORED_OUTPUT=0
-      return 0
-      ;;
-    -h|--help)
-      global_help
-      exit
-      ;;
-    -v|--version)
-      show_version
-      exit
-      ;;
-    *)
-      return $NOT_A_FLAG
-      ;;
-  esac
-}

@@ -1,31 +1,14 @@
 # --------
 # summary: upgrades the framework
+# requires: curl jq
 # --------
+# @about   upgrades the framework
+# @usage   pj update
 
 ERROR_MSG="Update failed! Check $(bold "$FRAMEWORK_LOGS") for details."
 
-help() {
-  _command="upgrade"
-  _params=""
-  _PARAMS=""
-
-cat <<EOF
-$(bold ABOUT)
-    $(bold "$FRAMEWORK_NAME $FRAMEWORK_VERSION")
-
-$(bold "COMMAND"): $(blue $_command)
-    upgrades the framework
-
-$(bold USAGE)
-    $FRAMEWORK_NAME $_command
-
-$(bold EXAMPLE)
-    $(prompt "pj $_command $_params")
-EOF
-}
-
 check_update() {
-  sleep 0.3
+  sleep_frac 0.3
   repo=$(echo "$FRAMEWORK_URL" | sed -E "s/.*com.//g")
   json=$(curl -s -H "Accept: application/vnd.github.v3+json" "https://api.github.com/repos/$repo/releases/latest")
 
@@ -36,18 +19,15 @@ check_update() {
   next=$(echo "$json" | jq ".tag_name" | sed "s/\"//g")
 
   if [ "$next" = "$FRAMEWORK_VERSION" ]; then
-      return 0
+    return 0
   else
-      echo "$next" > /tmp/pj_upgrade
-      return 2
+    echo "$next" > "$FRAMEWORK_TMP/pj_upgrade"
+    return 2
   fi
 }
 
-init() {
-  unset -f init
-  [ "$1" = "help" ] && { help; return 0; }
-
-  sleep 0.2
+main() {
+  sleep_frac 0.2
   banner
 
   check_update &
@@ -59,36 +39,48 @@ init() {
   if [ "$version" -eq 0 ]; then
     success "Already at latest version"
   elif [ "$version" -eq 1 ]; then
-       warn "Could not get latest version information."
-       error "$ERROR_MSG"
+    warn "Could not get latest version information."
+    panic "$ERROR_MSG"
   else
-    next=$(cat /tmp/pj_upgrade) && rm /tmp/pj_upgrade
+    next=$(cat "$FRAMEWORK_TMP/pj_upgrade") && rm -f "$FRAMEWORK_TMP/pj_upgrade"
 
-    script=$(mktemp "/tmp/XXX.sh")
+    script=$(mktemp "$FRAMEWORK_TMP/pj-update.XXXXXX")
     curl -fsL "$FRAMEWORK_URL/releases/download/${next}/install.sh" --output "$script" >/dev/null &
     pid=$!
     load "Downloading updates" "$pid"
     wait $pid
+    dl_status=$?
 
-    if [ -e "$script" ] && [ -s "$script" ]; then
-      sh "$script" > /dev/null &
-      pid=$!
-      load "Installing updates" "$pid"
-      wait $pid
-    else
-        warn "Could not update framework."
-        error "$ERROR_MSG"
+    if [ "$dl_status" -ne 0 ] || [ ! -s "$script" ]; then
+      rm -f "$script"
+      warn "Could not update framework."
+      panic "$ERROR_MSG"
     fi
 
-    if [ $? -ne 0 ]; then
-        warn "Could not update framework."
-        error "$ERROR_MSG"
+    sh "$script" > /dev/null &
+    pid=$!
+    load "Installing updates" "$pid"
+    wait $pid
+    install_status=$?
+    rm -f "$script"
+
+    if [ "$install_status" -ne 0 ]; then
+      warn "Could not update framework."
+      panic "$ERROR_MSG"
     fi
 
-      sed -E "s/(VERSION=.)${FRAMEWORK_VERSION}(.)/\1${next}\2/g" -i "$(which pj)"
-      sed -E "s/(VERSION=.)${FRAMEWORK_VERSION}(.)/\1${next}\2/g" -i `which pj`
-      success "Upgraded to $(bold $next)"
+    # patch the version stamp in the installed binary (portable in-place edit)
+    _pj_bin=$(command -v pj) || panic "$ERROR_MSG"
+    _patched=$(mktemp "$FRAMEWORK_TMP/pj-update.XXXXXX")
+    sed -E "s/(VERSION=.)${FRAMEWORK_VERSION}(.)/\1${next}\2/g" "$_pj_bin" > "$_patched" \
+      && mv "$_patched" "$_pj_bin" \
+      || { rm -f "$_patched"; panic "$ERROR_MSG"; }
+    success "Upgraded to $(bold "$next")"
   fi
+}
+
+init() {
+  app_start "$@"
 }
 
 init "$@"

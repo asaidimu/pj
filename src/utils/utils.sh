@@ -15,11 +15,16 @@ update_template() {
   [ -z "$1" ] && { error "no template specified!" "$ERROR_INVALID_OPTIONS"; }
   template_file="$1"; shift
 
+  # sed -i is not portable: edit a copy, then move it into place.
+  _ut_tmp=$(mktemp) || return 1
+  cp "$template_file" "$_ut_tmp" || { rm -f "$_ut_tmp"; return 1; }
   for opt in "$@"; do
-    key=$(echo "$opt" | sed -e "s/\(\w\+\):.*/\\{\\{\1\\}\}/g")
-    val=$(echo "$opt" | sed -e "s/\w\+:\(.*\)$/\1/g")
-    sed -e "s|${key}|${val}|g" -i "$template_file"
+    key=$(printf '%s' "$opt" | sed -e 's/\([[:alnum:]_][[:alnum:]_]*\):.*/{{\1}}/g')
+    val=$(printf '%s' "$opt" | sed -e 's/^[[:alnum:]_][[:alnum:]_]*://' -e 's/[\\&|]/\\&/g')
+    sed -e "s|${key}|${val}|g" "$_ut_tmp" > "${_ut_tmp}.n" || { rm -f "$_ut_tmp" "${_ut_tmp}.n"; return 1; }
+    mv "${_ut_tmp}.n" "$_ut_tmp"
   done
+  mv "$_ut_tmp" "$template_file"
 }
 
 fill_template() {
@@ -30,8 +35,10 @@ fill_template() {
 
   for key in $keys; do
     val=$(question "$key")
-    key="\\{\\{$key\\}\}"
-    sed -e "s|${key}|${val}|g" -i "$template_file"
+    val=$(printf '%s' "$val" | sed -e 's/[\\&|]/\\&/g')
+    _ft_tmp=$(mktemp) || return 1
+    sed -e "s|{{${key}}}|${val}|g" "$template_file" > "$_ft_tmp" || { rm -f "$_ft_tmp"; return 1; }
+    mv "$_ft_tmp" "$template_file"
   done
 }
 
@@ -45,7 +52,7 @@ extract_file() {
 }
 
 tabular() {
-   echo "$1:$2" | awk -F':' '{printf "    %-10s --   %s\n", $1, $2}'
+   printf '%s\n' "$1:$2" | awk -F':' '{printf "    %-10s --   %s\n", $1, $2}'
 }
 
 module_list() {
@@ -54,7 +61,7 @@ module_list() {
     [ -e "$module_init" ] || continue
     summary=$(grep "# summary" "$module_init" | sed -e "s/^.*:[[:space:]]//g")
     [ -z "$summary" ] && summary="see $(bold "$FRAMEWORK_NAME $module help")"
-    echo "$module:$summary" | awk -F':' '{printf "    %-10s --   %s\n", $1, $2}'
+    printf '%s\n' "$module:$summary" | awk -F':' '{printf "    %-10s --   %s\n", $1, $2}'
   done
 
   for module in $(ls "$CUSTOM_PLUGINS_PATH"); do
@@ -62,14 +69,18 @@ module_list() {
     [ -e "$module_init" ] || continue
     summary=$(grep "# summary" "$module_init" | sed -e "s/^.*:[[:space:]]//g")
     [ -z "$summary" ] && summary="see $(bold "$FRAMEWORK_NAME $module help")"
-    echo "$module:$summary" | awk -F':' '{printf "    %-10s --   %s\n", $1, $2}'
+    printf '%s\n' "$module:$summary" | awk -F':' '{printf "    %-10s --   %s\n", $1, $2}'
   done
 
 }
 
 global_help() {
   help_module="$FRAMEWORK_ROUTE/help/index.sh"
-  . "$help_module"
+  (
+    export APP_SOURCE="$help_module"
+    export APP_MODULE=1
+    . "$help_module"
+  )
 }
 
 # target list generator
@@ -79,6 +90,6 @@ _generate_list() {
     # if the PROJECTS_LIST_GENERATOR file exists, source it
     . "$PROJECTS_LIST_GENERATOR"
   else
-    echo "$HOME" > "$PROJECTS_LIST"
+    printf '%s\n' "$HOME" > "$PROJECTS_LIST"
   fi
 }

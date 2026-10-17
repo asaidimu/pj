@@ -1,16 +1,7 @@
-TMPFILE="$(mktemp -t --suffix=.SUFFIX generator.XXXXXX)"
-trap "rm -f '$TMPFILE'" 0               # EXIT
-trap "rm -f '$TMPFILE'; exit 1" 2       # INT
-trap "rm -f '$TMPFILE'; exit 1" 1 15    # HUP TERM
-
-projects=$(find "$PROJECTS_PATH" -maxdepth 4 -name ".pj" -print | xargs | sed -E "s/.\.pj//g;s/[[:space:]]/:/g")
-repos=$(find "$PROJECTS_PATH" -maxdepth 4 -name ".git" -print | xargs | sed -E "s/.\.git//g;s/[[:space:]]/:/g")
-
-SESSION_TARGETS="$projects:$repos"
-
-# Split SESSION_TARGETS, remove duplicates, and filter empty lines
-printf "$SESSION_TARGETS\n" | sed "s/:/\n/g" | sort | uniq | sed '/^$/d' >> $TMPFILE
-
-: > $PROJECTS_LIST
-cat $TMPFILE >> $PROJECTS_LIST
+# regenerate the project list: one path per line, the /.pj or /.git
+# marker stripped, deduped. (Sourced in the framework shell.)
+{
+  find "$PROJECTS_PATH" -maxdepth 4 -name ".pj" -print
+  find "$PROJECTS_PATH" -maxdepth 4 -name ".git" -print
+} | sed -E 's#/\.(pj|git)$##' | sort -u > "$PROJECTS_LIST"
 # vim:set ft=sh:

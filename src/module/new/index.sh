@@ -1,51 +1,85 @@
+#!/bin/sh
 # --------
 # summary: creates a project from a recipe
 # completion: recipes
 # --------
+# @about   creates a project from a recipe, or scaffolds a script/module
+# @usage   pj new <recipe> <project-name>
+#          pj new --script <file.sh>
+#          pj new --module <name>
+# @flag    -o, --overwrite       overwrite an existing project, script or module
+# @flag    --script=<file.sh>    scaffold a standalone script in the current directory
+# @flag    --module=<name>       scaffold a user module under the plugins directory
+# @arg     [<recipe>]            recipe name (see the documentation for built-in recipes)
+# @arg     [<project-name>]      name of the project to create
 
-list() {
-  dir="$1"
-  [ -d "$dir" ] || return
-  for recipe in $(ls "$dir"); do
-    sum=$(grep "DESCRIPTION" "$dir/$recipe" | sed -E "s/^.*:[[:space:]]//g")
-    echo "$recipe:$sum" | awk -F':' '{printf "    %-10s --   %s\n", $1, $2}'
-  done
+# scaffold a standalone script from the built-in pragma template
+scaffold_script() {
+  target="$1"
+  tmpl="$FRAMEWORK_PATH/src/module/new/script.tmpl"
+
+  [ -n "$target" ] || {
+    app_help
+    panic "--script needs a file name, e.g. --script program.sh" "$ERROR_INVALID_OPTIONS"
+  }
+
+  [ -f "$tmpl" ] || panic "script template missing at $tmpl" "$ERROR_ILLEGAL_OP"
+
+  [ -e "$target" ] && [ "$FLAG_OVERWRITE" -ne 1 ] && {
+    panic "$target already exists (use -o to overwrite)" "$ERROR_PROJECT_EXISTS"
+  }
+
+  cp "$tmpl" "$target" && chmod +x "$target" || {
+    panic "could not create $target" "$ERROR_ILLEGAL_OP"
+  }
+
+  success "Created $(green "$target")"
+  inform "Edit the # @... block at the top to declare your CLI, then run: $target --help"
 }
 
-help() {
-cat <<EOF
-$(bold ABOUT)
-    $(bold "$FRAMEWORK_NAME $FRAMEWORK_VERSION")
+# scaffold a user module (plugin) from the built-in template
+scaffold_module() {
+  name="$1"
+  tmpl="$FRAMEWORK_PATH/src/module/new/module.tmpl"
 
-$(bold "COMMAND"): $(blue new)
-    creates a project folder in $(grey "$PROJECTS_PATH")
+  [ -n "$name" ] || {
+    app_help
+    panic "--module needs a name, e.g. --module greet" "$ERROR_INVALID_OPTIONS"
+  }
 
-$(bold USAGE)
-    $FRAMEWORK_NAME new <recipe> <project-name> [flag]
+  case "$name" in
+    -*|*/*|.|..|recipes|*[!A-Za-z0-9_-]*)
+      panic "invalid module name: $name (letters, digits, - and _ only)" "$ERROR_INVALID_OPTIONS"
+      ;;
+  esac
 
-$(bold "AVAILABE FLAGS")
-    -o  --overwrite      overwrite project
+  [ -f "$tmpl" ] || panic "module template missing at $tmpl" "$ERROR_ILLEGAL_OP"
 
-$(bold EXAMPLE)
-    $(prompt "pj new base my-project")
+  dir="$CUSTOM_PLUGINS_PATH/$name"
+  target="$dir/index.sh"
 
-$(bold "AVAILABLE RECIPES")
+  [ -e "$target" ] && [ "$FLAG_OVERWRITE" -ne 1 ] && {
+    panic "$target already exists (use -o to overwrite)" "$ERROR_PROJECT_EXISTS"
+  }
 
-  $(bold "INBUILT")
-$(list "$RECIPES_PATH")
+  mkdir -p "$dir" || {
+    panic "could not create $dir" "$ERROR_ILLEGAL_OP"
+  }
 
-  $(bold "CUSTOM")
-$(list "$CUSTOM_RECIPES_PATH")
+  sed "s/__NAME__/$name/g" "$tmpl" > "$target" || {
+    panic "could not create $target" "$ERROR_ILLEGAL_OP"
+  }
 
-EOF
+  success "Created module $(green "$name") at $dir"
+  inform "Declare the CLI in the # @... block, then run: $FRAMEWORK_NAME $name"
 }
 
 parse_args() {
   plugin="$1"
-  project="$2"
+  _project="$2"
 
   [ -z "$plugin" ] && {
-    help
+    app_help
     panic "no input provided!" "$ERROR_INVALID_OPTIONS"
   }
 
@@ -53,37 +87,53 @@ parse_args() {
 
   if [ -x "$plugin" ]; then
     export PROJECT_PLUGIN="$plugin"
-  elif [ -z "$project" ]; then
+  elif [ -z "$_project" ]; then
     export PROJECT_PLUGIN="$RECIPES_PATH/base"
-    project="$1"
+    _project="$1"
     inform "Using base recipe"
   else
     panic "Recipe $1 not found!" "$ERROR_UNKNOWN_PLUGIN"
   fi
 
-  [ -z "$project" ] && {
-    help
+  [ -z "$_project" ] && {
+    app_help
     panic "project name not provided!" "$ERROR_UNKNOWN_PROJECT"
   } || {
-    setup "$project"
+    setup "$_project"
   }
 
   [ "$FLAG_OVERWRITE" -eq 1 ] && return 0
 
   [ -d "$PROJECT_PATH" ] && {
-    panic "project $project found under $PROJECTS_PATH" "$ERROR_PROJECT_EXISTS"
+    panic "project $_project found under $PROJECTS_PATH" "$ERROR_PROJECT_EXISTS"
   }
 
   return 0
 }
 
-init() {
-  unset -f init
-  if [ "$1" = "help" ]; then
-    help
-    return 0
+main() {
+  # accept -o both as a global flag (pj -o new ...) and as a module flag
+  # (pj new -o ...)
+  [ -n "${OPT_OVERWRITE:-}" ] && export FLAG_OVERWRITE=1
+
+  if [ -n "${OPT_MODULE:-}" ]; then
+    scaffold_module "$OPT_MODULE"
+    return $?
   fi
-  parse_args "$@" && . "$PROJECT_PLUGIN"
+
+  if [ -n "${OPT_SCRIPT:-}" ]; then
+    scaffold_script "$OPT_SCRIPT"
+    return $?
+  fi
+
+  parse_args "$@" && {
+    warn_missing_deps "recipe $(basename "$PROJECT_PLUGIN")" "$PROJECT_PLUGIN"
+    . "$PROJECT_PLUGIN"
+  }
+}
+
+init() {
+  app_start "$@"
 }
 
 init "$@"

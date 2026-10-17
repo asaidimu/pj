@@ -5,7 +5,7 @@
 export FRAMEWORK_PATH="${FRAMEWORK_PATH:?FRAMEWORK_PATH must be set}"
 
 # zsh runs in its native mode by default; enable POSIX-style word splitting
-# so unquoted "$FRAMEWORK_ARGUMENTS" expands into separate arguments.
+# so unquoted expansions the framework still relies on behave portably.
 if [ -n "${ZSH_VERSION:-}" ]; then
   setopt shwordsplit 2>/dev/null
 fi
@@ -15,6 +15,9 @@ fi
 
 # -- load utilities --
 . "$UTILITIES_PATH/index.sh"
+
+# -- framework identity metadata --
+. "$FRAMEWORK_PATH/src/about.sh"
 
 # -- validate the environment --
 . "$UTILITIES_PATH/env_check.sh"

@@ -22,11 +22,30 @@ PJ is a modular, scriptable, and POSIX-compliant project management framework fo
 
 ## Requirements
 
-PJ requires the following standard Unix tools:
+PJ splits dependencies into two tiers:
 
-- `sh`, `tmux`, `fzf`, `tree`, `awk`, `sed`, `grep`, `curl`, `tar`, `mkdir`, `ls`, `cat`, `date`, `read`, `printf`, `echo`, `jq`
+**Required** — the kernel refuses to start without these. They are standard
+POSIX userland tools present on any Unix system (authoritative list:
+`src/utils/deps.sh`):
 
-PJ will notify you if any required tool is missing.
+`sh`, `mkdir`, `ls`, `cat`, `date`, `sed`, `awk`, `grep`, `tr`, `wc`, `sleep`,
+`find`, `xargs`, `sort`, `uniq`, `mktemp`, `mv`, `rm`, `cp`, `chmod`,
+`basename`, `dirname`, `printf`, `echo`, `read`
+
+**Module-specific** — each module declares the extra tools it needs with a
+`# requires:` tag. Missing ones produce a warning at install time and again
+when the command runs; they never block pj itself:
+
+| Module | Extra tools |
+|--------------|----------------------|
+| `open` | `tmux`, `fzf`, `tree` |
+| `archive` | `tar` |
+| `update` | `curl`, `jq` |
+| `analyze`, `document` | `bun` |
+| `commit` | `bun`, `git` |
+
+So `pj list`, `pj help`, and `pj new` work even on a machine without
+tmux, fzf, or jq installed.
 
 ## Installation
 
@@ -53,10 +72,14 @@ pj <command> [options]
 - `pj archive` – Archive a project.
 - `pj delete` – Delete a project.
 - `pj list` – List all projects.
+- `pj env` – List or verify framework environment variables.
 - `pj refresh` – Regenerate the project list.
 - `pj update` – Update PJ to the latest version.
 - `pj completion` – (Re)generate shell completions.
 - `pj help` – Display help and available commands.
+- `pj help --extended` – Full framework info: authorship, license, homepage,
+  repository, release, and install paths (metadata resolves from the install
+  stamp, git remote, or `FRAMEWORK_*` env overrides).
 
 For detailed help on any command:
 
@@ -98,6 +121,13 @@ pj completion bash       # bash only
 ```sh
 # Create a new project from the 'base' recipe
 pj new base myproject
+
+# Scaffold a standalone CLI script in the current directory
+# (pragma-driven — describe flags/commands in the comment block, no parsing code)
+pj new --script program.sh
+
+# Scaffold a custom module (plugin) — immediately available as `pj <name>`
+pj new --module greet
 
 # Open a project with fuzzy selection
 pj open
@@ -147,18 +177,22 @@ Override default settings by editing (or creating) `~/.config/pj/env.sh`:
 export PROJECTS_PATH="$HOME/my-projects"
 ```
 
-Common environment variables:
+Every variable is declared once in `src/env.sh` with a name, kind
+(`str`/`num`/`dir`/`file`), scope (`override`/`derived`/`fixed`) and
+description — that single declaration is what lists and verifies it:
 
-| Variable            | Default                     | Description                        |
-|---------------------|-----------------------------|------------------------------------|
-| `PROJECTS_PATH`     | `$HOME/projects`            | Directory for storing projects     |
-| `CUSTOM_PLUGINS_PATH` | `~/.config/pj/plugins`    | Directory for custom plugins       |
-| `CUSTOM_RECIPES_PATH` | `~/.config/pj/plugins/recipes` | Directory for custom recipe files |
+```sh
+pj env           # every variable: value, description, kind, scope
+pj env check     # verify all of them (exit code = number of issues)
+```
 
-These defaults are applied automatically when the variables are unset, and
-runtime directories (including `PROJECTS_PATH`) are created on first run.
-Derived paths (`PROJECTS_DATA`, `ARCHIVE_PATH`, `PROJECTS_LIST`, …) are
-computed *after* your `env.sh` is loaded, so overrides always take effect.
+Variables marked `override` in `pj env` are the ones your `env.sh` may
+set; `derived` paths (`PROJECTS_DATA`, `ARCHIVE_PATH`, `PROJECTS_LIST`, …)
+are computed *after* your `env.sh` is loaded, so overrides always take
+effect. Runtime directories (including `PROJECTS_PATH`) are created on
+first run. The startup environment check and `pj env check` run the same
+verification, so adding a variable with `env_set` in `src/env.sh` makes
+it listed and checked automatically — no other lists to update.
 
 Changes to `env.sh` are applied automatically on the next PJ command run.
 
@@ -229,6 +263,11 @@ To create a custom project template:
    pj new myrecipe myproject
    ```
 
+Recipes run inside the framework environment: `PROJECT_NAME`,
+`PROJECT_PATH`, and the utils (`inform`, `question`, `extract_file`, …) are
+available. A recipe may declare the tools it needs with a
+`# REQUIRES : <tool ...>` header; pj warns when one is missing.
+
 ### Custom Project List Generator
 
 To override the project list generation, place a script at:
@@ -238,6 +277,97 @@ To override the project list generation, place a script at:
 ```
 
 This script should output project paths (one per line).
+
+### Using the io library in your own scripts
+
+pj's terminal i/o layer — colors, labeled output, spinners, `question`,
+`radio`/`multiselect` (scrolling choice menus), `panic`, `notify` — is
+published as a standalone bundle at:
+
+```
+~/.local/share/pj/lib/io.sh
+```
+
+Source it from any script, no framework required:
+
+```sh
+#!/usr/bin/env sh
+. "${FRAMEWORK_LIB:-$HOME/.local/share/pj/lib}/io.sh"
+
+inform "checking target"
+panic "something is wrong"        # exits 1
+```
+
+The bundle is self-sufficient:
+
+- colors auto-disable when stdout is not a terminal (and `--no-color`
+  semantics via `FLAG_COLORED_OUTPUT=0`)
+- `log` writes to `/dev/null` unless `FRAMEWORK_LOGS` points somewhere
+- `panic` exits with `1` unless you pass an error code as the second argument
+- `FLAG_SILENT=1` quiets `notify`
+- `QUESTION_PREFIX` (default `question`) prefixes every prompt — the
+  typed `question()` line and both menus alike; set it once to rebrand a
+  whole flow (e.g. `QUESTION_PREFIX="step 2"` before a wizard)
+
+`radio`/`multiselect` share one menu model: **space chooses** (marks the
+current item — radio: one ●, multiselect: ☑ toggles), **enter continues**
+with whatever is chosen. If nothing is chosen and no default was given,
+enter refuses with an in-menu hint instead of aborting the caller — a
+long form can never lose its place to an accidental enter. Pass
+`-d <choice>` (`multiselect -d "a,b"` for several) to pre-choose defaults
+that plain enter accepts; numbers 1-9 jump to and choose an item; `q`
+cancels with rc 1.
+
+Set `FRAMEWORK_LIB` to use a relocated pj. The bundle is rebuilt from
+`src/utils/{colors,io,app}.sh` on every install and `pj update`.
+
+### Pragma-driven apps
+
+The bundle also ships a reflective app layer: declare your CLI in `# @...`
+comment pragmas and call `app_start` — flag parsing, command routing,
+dependency checks and `--help` output are derived from the block, so
+scaffolded scripts never need parsing code edited by hand.
+
+```sh
+#!/usr/bin/env sh
+# @about     Builds a factorio plugin zip
+# @usage     build.sh [options] <path>
+# @requires  jq zip
+# @flag      -o, --output=<dir>    where to write the zip (default: dist)
+# @arg       path                  plugin folder to bundle
+
+. "${FRAMEWORK_LIB:-$HOME/.local/share/pj/lib}/io.sh"
+
+main(){
+  plugin="$1"          # positionals arrive quoted, flags stripped
+  ...
+}
+
+app_start "$@"
+```
+
+Pragma reference:
+
+| pragma | effect |
+|---|---|
+| `# @about <text>` | one-line description in help |
+| `# @usage <text>` | usage line (default: `$SCRIPT_NAME [options]`) |
+| `# @version <text>` | enables `-v`/`--version` |
+| `# @requires <cmd>...` | checked before dispatch (after `--help`) |
+| `# @flag -x, --xx=<val> <help> [=> VAR]` | flag dispatch; value flags support `--xx=v` and `--xx v`; sets `OPT_XX` (or `VAR`); booleans set it to `1` |
+| `# @route <name> <help>` | command routing; calls `name()` |
+| `# @default <name>` | route used when none is given (omit to require a command) |
+| `# @arg <name> <help>` | required positional (arity-checked, named in errors) |
+| `# @arg [<name>] <help>` | optional positional |
+
+Built-ins: `-h/--help` (rendered from the same block), `--` end-of-flags,
+unknown-flag panics that list the valid flags, and quoted positionals all
+the way to `main`/your route function. Scripts without any pragma keep
+working: everything is passed to `main "$@"` as before. Set `APP_SOURCE`
+to reflect over a different file than the caller (needed only in exotic
+sourcing setups). Kernel modules (`src/module/*/index.sh`) use this same
+layer: their pragmas render `pj <command> help`, and the dispatcher sets
+`APP_SOURCE`/`APP_MODULE` for them automatically.
 
 ## Developer Documentation
 
@@ -249,6 +379,12 @@ This script should output project paths (one per line).
 4. The command produces output (e.g., opens a tmux session, creates a project).
 
 ### Plugin Pattern
+
+Scaffold a ready-to-run module with `pj new --module <name>` — it lands in
+`~/.config/pj/plugins/<name>/index.sh`, pragma-driven like scripts, with a
+delete-me how-to block at the bottom. It shows up in `pj help` and shell
+completions immediately; add `pre_hook.sh`/`post_hook.sh` beside it for
+before/after behavior.
 
 Each plugin is a directory (in `src/module/<plugin>/` or `~/.config/pj/plugins/<plugin>/`) containing an `index.sh` file. The `index.sh` must define an `init()` function and call it:
 
@@ -267,7 +403,9 @@ Plugins should:
 Modules declare a `# summary: <one-liner>` tag at the top of their
 `index.sh`; it feeds `pj help` and the shell completion generator. An
 optional `# completion: <type>` tag tells the generator which operands to
-complete (see [Shell Completions](#shell-completions)):
+complete (see [Shell Completions](#shell-completions)), and an optional
+`# requires: <tool ...>` tag lists the extra commands the module needs —
+missing ones only warn, at install and at runtime:
 
 #### Example Plugin
 

@@ -8,75 +8,86 @@ FRAMEWORK_URL="{{url}}"
 FRAMEWORK_PATH="$HOME/.local/share/$FRAMEWORK_NAME"
 FRAMEWORK_BINARY="$HOME/.local/bin/$FRAMEWORK_NAME"
 
+# POSIX sleep(1) takes integer seconds only; sub-second delays are a
+# widely available extension. Skip them silently when unsupported.
+_sleep_frac() {
+    sleep "$1" 2>/dev/null || :
+}
+
 _clean(){
-    sleep 0.2
-    if [ -d $FRAMEWORK_PATH ]; then
-        rm -rf $FRAMEWORK_PATH
+    _sleep_frac 0.2
+    if [ -d "$FRAMEWORK_PATH" ]; then
+        rm -rf "$FRAMEWORK_PATH"
     fi
-    if [ -e $FRAMEWORK_BINARY ]; then
-        rm -rf $FRAMEWORK_BINARY
+    if [ -e "$FRAMEWORK_BINARY" ]; then
+        rm -rf "$FRAMEWORK_BINARY"
     fi
 }
 
 _extract() {
-    TMPFILE="$(mktemp -t --suffix=.SUFFIX installer_sh.XXXXXX)"
-    trap "rm -f '$TMPFILE'" 0               # EXIT
-    trap "rm -f '$TMPFILE'; exit 1" 2       # INT
-    trap "rm -f '$TMPFILE'; exit 1" 1 15    # HUP TERM
+    TMPFILE="$(mktemp)"
+    trap 'rm -f "$TMPFILE"' 0                # EXIT
+    trap 'rm -f "$TMPFILE"; exit 1' 2        # INT
+    trap 'rm -f "$TMPFILE"; exit 1' 1 15     # HUP TERM
 
-    printf "%s" "$SOURCE" | base64 --decode > $TMPFILE
-    mkdir -p $FRAMEWORK_PATH
-    cd $FRAMEWORK_PATH
-    tar -Jxf $TMPFILE
-    rm -rf $TMPFILE
+    printf "%s" "$SOURCE" | base64 --decode > "$TMPFILE"
+    mkdir -p "$FRAMEWORK_PATH"
+    cd "$FRAMEWORK_PATH" || return 1
+    tar -Jxf "$TMPFILE"
+    rm -rf "$TMPFILE"
 }
 
-#_check_dependencies() {
-#    local missing_deps=()
-#    local required_deps=(
-#        "sh"
-#        "tmux"
-#        "fzf"
-#        "tree"
-#        "awk"
-#        "sed"
-#        "grep"
-#        "curl"
-#        "tar"
-#        "mkdir"
-#        "ls"
-#        "cat"
-#        "date"
-#        "read"
-#        "printf"
-#        "echo"
-#        "jq"
-#    )
-#
-#    # Check each dependency
-#    for dep in "${required_deps[@]}"; do
-#        if ! command -v "$dep" >/dev/null 2>&1; then
-#            missing_deps+=("$dep")
-#        fi
-#    done
-#
-#    # Report results
-#    if [ ${#missing_deps[@]} -gt 0 ]; then
-#        _log "$(red "Missing required dependencies:")\n"
-#        for dep in "${missing_deps[@]}"; do
-#            _log "  - $(red "$dep")\n"
-#        done
-#        _log "\n$(yellow "Please install the missing dependencies and try again.")\n"
-#        return 1
-#    fi
-#
-#    return 0
-#}
+_check_extractor() {
+    local _tool
+    for _tool in tar base64 mktemp; do
+        if ! command -v "$_tool" >/dev/null 2>&1; then
+            _error "missing tool required to install: ${_tool}"
+            return 1
+        fi
+    done
+    return 0
+}
+
+_check_dependencies() {
+    local _deps="$FRAMEWORK_PATH/src/utils/deps.sh"
+
+    if [ ! -f "$_deps" ]; then
+        _error "dependency manifest not found: ${_deps}"
+        return 1
+    fi
+    . "$_deps"
+
+    local _missing
+    _missing=$(missing_required)
+    if [ -n "$_missing" ]; then
+        _error "missing required tools: ${_missing}"
+        _alert "install them and run this installer again"
+        return 1
+    fi
+
+    local _mod _name
+    for _mod in "$FRAMEWORK_PATH"/src/module/*/index.sh; do
+        [ -f "$_mod" ] || continue
+        _name=$(basename "$(dirname "$_mod")")
+        warn_missing_deps "$_name" "$_mod"
+    done
+
+    local _plugins="$HOME/.config/$FRAMEWORK_NAME/plugins"
+    if [ -d "$_plugins" ]; then
+        for _mod in "$_plugins"/*/index.sh; do
+            [ -f "$_mod" ] || continue
+            _name=$(basename "$(dirname "$_mod")")
+            warn_missing_deps "$_name" "$_mod"
+        done
+    fi
+
+    return 0
+}
 
 _install_script() {
-    sleep 0.2
+    _sleep_frac 0.2
     mkdir -p "$(dirname "$FRAMEWORK_BINARY")"
-cat > $FRAMEWORK_BINARY << EOF
+cat > "$FRAMEWORK_BINARY" << EOF
 #!/usr/bin/env sh
 
 # -- set framework path --
@@ -89,11 +100,22 @@ FRAMEWORK_VERSION="$FRAMEWORK_VERSION"
 # -- bootstrap --
 . "\$FRAMEWORK_PATH/src/bootstrap.sh"
 EOF
-    if [ -e $FRAMEWORK_BINARY ]; then
-        chmod +x $FRAMEWORK_BINARY
+    if [ -e "$FRAMEWORK_BINARY" ]; then
+        chmod +x "$FRAMEWORK_BINARY"
     else
         return 2
     fi
+}
+
+_install_lib() {
+    local _utils="$FRAMEWORK_PATH/src/utils"
+    local _lib="$FRAMEWORK_PATH/lib"
+
+    [ -f "$_utils/colors.sh" ] && [ -f "$_utils/io.sh" ] && [ -f "$_utils/app.sh" ] || return 1
+
+    mkdir -p "$_lib" || return 1
+    cat "$_utils/colors.sh" "$_utils/io.sh" "$_utils/app.sh" > "$_lib/io.sh" || return 1
+    return 0
 }
 
 _install_completion() {
@@ -126,15 +148,8 @@ _install_completion() {
 _main(){
     _banner
 
-    # -- perform checks
-    # TODO: Figure out if this is causing installation errors. For now comment
-    # it out
-    # _check_dependencies &
-    sleep 0.3 &
-    pid=$!
-    _load "Initializing" "Dependency checks complete" $pid
-    wait $pid
-    [ $? -ne 0 ] && _abort
+    # -- check the installer's own tools before touching anything --
+    _check_extractor || _abort
 
     # -- clean up --
     _clean &
@@ -150,10 +165,13 @@ _main(){
     wait $pid
     [ $? -ne 0 ] && _abort
 
+    # -- required framework deps abort; module-specific deps only warn --
+    _check_dependencies || _abort
+
     # -- add command to path --
     _install_script &
     pid=$!
-    _load "Installing script" "Script installed at $(blue $FRAMEWORK_BINARY)" $pid
+    _load "Installing script" "Script installed at $(blue "$FRAMEWORK_BINARY")" $pid
     wait $pid
     [ $? -ne 0 ] && _abort
 
@@ -163,9 +181,16 @@ _main(){
     _load "Installing completions" "Shell completions installed" $pid
     wait $pid
 
-    _log "Installed  $(bold $(blue "$FRAMEWORK_NAME-$FRAMEWORK_VERSION"))\n"
-    _log "Run ${FRAMEWORK_NAME} to get started.\n"
-    _log "Happy Coding!\n"
+    # -- install the standalone io library --
+    _install_lib &
+    pid=$!
+    _load "Installing io library" "Library available at $(blue "$FRAMEWORK_PATH/lib/io.sh")" $pid
+    wait $pid
+    [ $? -ne 0 ] && _abort
+
+    _log "Installed  $(bold $(blue "$FRAMEWORK_NAME-$FRAMEWORK_VERSION"))"
+    _log "Run ${FRAMEWORK_NAME} to get started."
+    _log "Happy Coding!"
 }
 
 # ---------------------------------------------------------------------------- #
@@ -185,76 +210,76 @@ _repl() {
 _label(){
   color="$1"
   level="$2"
-  size=$(printf "$level" | wc -m)
+  size=$(printf '%s' "$level" | wc -m)
   size=$((6 - size))
-  printf "$($color "$(_repl " " $size)${level} │") "
+  printf '%s ' "$($color "$(_repl " " $size)${level} │")"
 }
 
 _log(){
   _label bold_green "LOG"
-  printf "${@}"
+  printf '%s\n' "$*"
 }
 _alert() {
   _label bold_yellow "ALERT"
-  printf "${@}"
+  printf '%s\n' "$*"
 }
 _error(){
   _label bold_red "ERROR"
-  printf "${@}"
+  printf '%s\n' "$*"
 }
 _trace(){
   _label bold_cyan "TRACE"
-  printf "${@}"
+  printf '%s' "$*"
 }
 _debug(){
   _label bold_blue "DEBUG"
-  printf "${@}"
+  printf '%s\n' "$*"
 }
 
 _abort(){
-    printf "$(red "[") Install failed ! $(red "]")\n"
+    printf '%s\n' "$(red "[") Install failed ! $(red "]")"
     exit 27
 }
 
 bold_blue(){
-  printf "\033[1;34;48m${@}\033[0m";
+  printf '\033[1;34;48m%s\033[0m' "$*";
 }
 bold_cyan(){
-  printf "\033[1;36;48m${@}\033[0m";
+  printf '\033[1;36;48m%s\033[0m' "$*";
 }
 bold_green(){
-  printf "\033[1;32;48m${@}\033[0m";
+  printf '\033[1;32;48m%s\033[0m' "$*";
 }
 bold_grey(){
-  printf "\033[1;30;48m${@}\033[0m";
+  printf '\033[1;30;48m%s\033[0m' "$*";
 }
 bold_red(){
-  printf "\033[1;31;48m${@}\033[0m";
+  printf '\033[1;31;48m%s\033[0m' "$*";
 }
 bold_yellow(){
-  printf "\033[1;33;48m${@}\033[0m";
+  printf '\033[1;33;48m%s\033[0m' "$*";
 }
 
 bold(){
-  echo "\033[1;37;48m${@}\033[0m";
+  printf '\033[1;37;48m%s\033[0m' "$*";
 }
 
 red(){
-  echo "\033[1;31;48m${@}\033[0m";
+  printf '\033[1;31;48m%s\033[0m' "$*";
 }
 
 blue(){
-  printf "\033[0;34;48m${@}\033[0m";
+  printf '\033[0;34;48m%s\033[0m' "$*";
 }
 cyan(){
-  printf "\033[0;36;48m${@}\033[0m";
+  printf '\033[0;36;48m%s\033[0m' "$*";
 }
 yellow(){
-  printf "\033[1;33;48m${@}\033[0m";
+  printf '\033[1;33;48m%s\033[0m' "$*";
 }
 
 green(){
-  printf "\033[1;32;48m${@}\033[0m";
+  printf '\033[1;32;48m%s\033[0m' "$*";
 }
 
 _clear_line(){
@@ -275,27 +300,27 @@ _load() {
 
     waiting=1
     while [ $waiting -eq 1 ]; do
-        printf "$a"
-        sleep 0.3
+        printf '%s' "$a"
+        _sleep_frac 0.3
         _clear_line
 
-        printf "$b"
-        sleep 0.3
+        printf '%s' "$b"
+        _sleep_frac 0.3
         _clear_line
 
-        printf "$c"
-        sleep 0.3
+        printf '%s' "$c"
+        _sleep_frac 0.3
         _clear_line
 
-        printf "$d"
+        printf '%s' "$d"
 
         if ! kill -0 "$pid" 2>/dev/null; then
             waiting=0
         fi
-        sleep 0.3
+        _sleep_frac 0.3
         _clear_line
     done
-    _log "${msg}\n"
+    _log "$msg"
 }
 
 # NOTE: the banner artwork is duplicated in src/utils/io.sh (the framework's
@@ -303,24 +328,24 @@ _load() {
 # self-contained because it runs before pj is installed.
 _banner(){
     duration=0.03
-    printf "\n" && sleep $duration
-    printf "\n" && sleep $duration
-    yellow '          ,ggggggggggg,\n'        && sleep $duration
-    yellow '          dP"""88""""""Y8,\n'     && sleep $duration
-    yellow '          Yb,  88      `8b \n'    && sleep $duration
-    yellow '           `"  88      ,8P  ' && blue 'ggggg,\n'  && sleep $duration
-    yellow '               88aaaad8P"   ' && blue 'dP"  Y8,\n'  && sleep $duration
-    yellow '               88"""""      ' && blue 'Yb,  gg\n'  && sleep $duration
-    yellow '               88           ' && blue ' `"  8I\n'  && sleep $duration
-    yellow '               88           ' && blue '    ,8I\n'  && sleep $duration
-    yellow '               88           ' && blue '  _,d8I\n'  && sleep $duration
-    yellow '               88           ' && blue '888P"888\n' && sleep $duration
-    yellow '                            ' && blue '   ,d8I\n'  && sleep $duration
-    yellow "                            " && blue " ,dP'8I\n"  && sleep $duration
-    yellow '                            ' && blue ',8"  8I\n'  && sleep $duration
-    yellow '                            ' && blue 'I8   8I\n'  && sleep $duration
-    yellow '                            ' && blue '`8, ,8I\n'  && sleep $duration
-    yellow '                            ' && blue ' `Y8P\n'    && sleep $duration
+    printf "\n" && _sleep_frac $duration
+    printf "\n" && _sleep_frac $duration
+    yellow '          ,ggggggggggg,'        && printf '\n' && _sleep_frac $duration
+    yellow '          dP"""88""""""Y8,'     && printf '\n' && _sleep_frac $duration
+    yellow '          Yb,  88      `8b '    && printf '\n' && _sleep_frac $duration
+    yellow '           `"  88      ,8P  ' && blue 'ggggg,'  && printf '\n' && _sleep_frac $duration
+    yellow '               88aaaad8P"   ' && blue 'dP"  Y8,'  && printf '\n' && _sleep_frac $duration
+    yellow '               88"""""      ' && blue 'Yb,  gg,'  && printf '\n' && _sleep_frac $duration
+    yellow '               88           ' && blue ' `"  8I,'  && printf '\n' && _sleep_frac $duration
+    yellow '               88           ' && blue '    ,8I,'  && printf '\n' && _sleep_frac $duration
+    yellow '               88           ' && blue '  _,d8I,'  && printf '\n' && _sleep_frac $duration
+    yellow '               88           ' && blue '888P"888,' && printf '\n' && _sleep_frac $duration
+    yellow '                            ' && blue '   ,d8I,'  && printf '\n' && _sleep_frac $duration
+    yellow "                            " && blue " ,dP'8I,"  && printf '\n' && _sleep_frac $duration
+    yellow '                            ' && blue ',8"  8I,'  && printf '\n' && _sleep_frac $duration
+    yellow '                            ' && blue 'I8   8I,'  && printf '\n' && _sleep_frac $duration
+    yellow '                            ' && blue '`8, ,8I,'  && printf '\n' && _sleep_frac $duration
+    yellow '                            ' && blue ' `Y8P,'    && printf '\n' && _sleep_frac $duration
     printf "\n"
     printf "\n"
 }

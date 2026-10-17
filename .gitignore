@@ -247,3 +247,7 @@ install.sh
 
 .session.vim
 .commit-message.md
+
+# -- pj build artifacts --
+src/about.local.sh
+pj.tar.xz

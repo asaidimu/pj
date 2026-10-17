@@ -1,0 +1,53 @@
+#!/usr/bin/env sh
+
+# @about     Example scaffold built on pj's app layer
+# @flag      -n, --name=<who>    whom to greet (default: world)
+# @route     hello               greet someone
+# @route     info                show script info
+# @default   hello
+
+. "${FRAMEWORK_LIB:-$HOME/.local/share/pj/lib}/io.sh"
+
+hello(){
+  inform "hello ${OPT_NAME:-world} from ${SCRIPT_NAME}"
+}
+
+info(){
+  inform "${SCRIPT_NAME}: scaffold using the pj app layer"
+}
+
+app_start "$@"
+
+#
+# -- how to use this template ------------------------------------------------
+#
+# This block is template documentation only — delete it once you understand
+# the layout.
+#
+# 1. Describe your CLI in the "# @..." pragmas at the top. They are ordinary
+#    comments to sh, but the pj app layer reads them at startup to build
+#    flag parsing, command routing, dependency checks and --help output.
+#    You never edit parsing code — only the pragma block.
+#
+#      # @about     one-line description            (shown in help)
+#      # @usage     usage line                      (optional)
+#      # @version   1.0.0                           (enables -v/--version)
+#      # @requires  jq curl                         (checked before running)
+#      # @flag      -x, --xx=<val>  help  [=> VAR]  value flag; sets OPT_XX
+#      # @flag      -q, --quiet     help  => FLAG_SILENT
+#      # @route     name              help            calls name()
+#      # @default   name                           route when none given
+#      # @arg       path                            required positional
+#      # @arg       [extra]                         optional positional
+#
+# 2. Implement one function per @route (named after the route). With no
+#    @route at all, implement a single main() — positionals arrive as
+#    "$@", quoted and flag-free.
+#
+# 3. Flags come BEFORE arguments:  ./program.sh [options] <args...>
+#    Use -- to force everything after it to be positional.
+#
+# 4. Try it:  ./program.sh --help
+#
+# Docs: pj README, section "Pragma-driven apps".
+# ----------------------------------------------------------------------------

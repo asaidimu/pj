@@ -10,7 +10,7 @@
 
 # -- add directories --
 
-inform "Setting up $(green ${project})."
+inform "Setting up $(green ${PROJECT_NAME})."
 
 [ -d $PROJECT_PATH ] && {
   success "Found project folder"
@@ -40,7 +40,7 @@ inform "Setting up $(green ${project})."
   success "Found README.md"
 } || {
   extract_file "template/README.md" "$PROJECT_PATH/README.md"
-  echo "# ${project}" > "$PROJECT_PATH/README.md"
+  echo "# ${PROJECT_NAME}" > "$PROJECT_PATH/README.md"
   notify "Added README"
 }
 

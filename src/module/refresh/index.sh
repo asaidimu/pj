@@ -1,37 +1,16 @@
 # --------
 # summary: (re)generates list of projects
 # --------
+# @about   (re)generates list of projects
+# @usage   pj refresh
 
-help() {
-cat <<EOF
-$(bold ABOUT)
-    $(bold "$FRAMEWORK_NAME $FRAMEWORK_VERSION")
-
-$(bold "COMMAND"): $(blue refresh)
-    (re)generates list of projects
-
-$(bold USAGE)
-    $FRAMEWORK_NAME refresh
-
-$(bold EXAMPLE)
-    $(prompt "${FRAMEWORK_NAME} refresh")
-EOF
+main() {
+  [ $# -eq 0 ] || { app_help; exit 1; }
+  _generate_list
 }
 
 init() {
-  option="$*"
-  case "$option" in
-    help)
-      help
-      ;;
-    "" )
-      _generate_list
-      ;;
-    * )
-      help
-      exit 1
-      ;;
-  esac
+  app_start "$@"
 }
 
 init "$@"

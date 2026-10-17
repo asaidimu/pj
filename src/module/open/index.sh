@@ -1,6 +1,12 @@
+#!/bin/sh
 # --------
-# summary: Initialises the environment for a project
+# summary: open a project in a tmux session
+# requires: tmux fzf tree
 # --------
+# @about   open a project in a tmux session (fuzzy selection)
+# @usage   pj open [refresh]
+# @route   refresh  (re)generate the project list
+# @default main
 
 # use fzf to list and select a session target
 _select_target() {
@@ -29,21 +35,20 @@ _create_session() {
   # comments start with a '#' on a new line.
   env="$path/.env"
 
-  cmd="new-session -ds $session_name -c $path"
-  tmp_cmd="$FRAMEWORK_TMP/tmux.cmd"
-
-  echo "$cmd" > "$tmp_cmd"
-  # build the tmux options add env variables
+  # accumulate the tmux argv safely (no eval): each -e VAR=value is one argument
+  set -- new-session -ds "$session_name" -c "$path"
   if [ -e "$env" ]; then
     # strip comments and blank lines from the env file
-    sed -E '/^(#.*)?$/d; s/^(.*)(=)(.*)$/\1\2"\3"/g;' "$env" | while IFS= read -r var; do
-      cmd="$cmd -e $var"
-      echo "$cmd" > "$tmp_cmd"
-    done
+    while IFS= read -r var; do
+      [ -n "$var" ] || continue
+      set -- "$@" -e "$var"
+    done <<EOF
+$(sed -E '/^(#.*)?$/d' "$env")
+EOF
   fi
 
   # run tmux with the commands
-  eval "tmux $(cat "$tmp_cmd")"
+  tmux "$@"
 
   # execute the setup script
   [ -x "$setup" ] && "$setup" "$session_name" "$path"
@@ -79,43 +84,16 @@ _sessionize() {
   _goto_session "$session_name"
 }
 
-help() {
-  cat <<EOF
-$(bold ABOUT)
-    $(bold "$FRAMEWORK_NAME $FRAMEWORK_VERSION")
-$(bold "COMMAND"): $(blue open)
-    initialises the environment for a project
+main() {
+  _sessionize
+}
 
-$(bold USAGE)
-    $FRAMEWORK_NAME
-    $FRAMEWORK_NAME <command>
-
-$(bold "AVAILABE COMMANDS")
-    refresh               (re)generates list of projects
-
-$(bold EXAMPLE)
-    $(prompt "pj open")
-    $(prompt "pj open refresh")
-EOF
+refresh() {
+  _generate_list
 }
 
 init() {
-  option="$*"
-  case "$option" in
-    help)
-      help
-      ;;
-    refresh)
-      _generate_list
-      ;;
-    "" )
-      _sessionize
-      ;;
-    * )
-      help
-      exit 1
-      ;;
-  esac
+  app_start "$@"
 }
 
 init "$@"

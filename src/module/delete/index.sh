@@ -3,40 +3,9 @@
 # summary: deletes a project, use with caution !
 # completion: projects
 # --------
-
-help() {
-cat <<EOF
-$(bold ABOUT)
-    $(bold "$FRAMEWORK_NAME $FRAMEWORK_VERSION")
-
-$(bold "COMMAND"): $(blue delete)
-    delete a project folder from $(grey "$PROJECTS_PATH")
-
-$(bold USAGE)
-    $FRAMEWORK_NAME delete <project-name>
-
-$(bold EXAMPLE)
-    $(prompt "pj delete my-project")
-
-EOF
-}
-
-parse_args() {
-  [ -z "$1" ] && {
-    help
-    panic "no input provided!" "$ERROR_INVALID_OPTIONS"
-  }
-
-  [ "$1" = "." -o "$1" = ".." ] && {
-    panic "action cannot be perfomed" "$ERROR_ILLEGAL_OP"
-  }
-
-  setup "$1"
-
-  [ -d "$PROJECT_PATH" ] || {
-    panic "project $1 not found under $PROJECTS_PATH" "$ERROR_UNKNOWN_PROJECT"
-  }
-}
+# @about   delete a project folder, use with caution !
+# @usage   pj delete <project-name>
+# @arg     <project-name>  project to delete
 
 rm_project() {
   project="$PROJECT_PATH"
@@ -55,12 +24,22 @@ rm_project() {
   fi
 }
 
+main() {
+  [ "$1" = "." -o "$1" = ".." ] && {
+    panic "action cannot be perfomed" "$ERROR_ILLEGAL_OP"
+  }
+
+  setup "$1"
+
+  [ -d "$PROJECT_PATH" ] || {
+    panic "project $1 not found under $PROJECTS_PATH" "$ERROR_UNKNOWN_PROJECT"
+  }
+
+  rm_project
+}
+
 init() {
-  if [ "$1" = "help" ]; then
-    help
-    return 0
-  fi
-  parse_args "$@" && rm_project
+  app_start "$@"
 }
 
 init "$@"

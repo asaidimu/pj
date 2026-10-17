@@ -1,30 +1,14 @@
 # --------
 # summary: regenerates shell completions
 # --------
+# @about   (re)generates shell completion files from installed modules and plugins
+# @usage   pj completion [zsh|bash|all]
+# @route   zsh   install zsh completions
+# @route   bash  install bash completions
+# @route   all   install completions for every available shell
+# @default all
 
 GENERATOR="$FRAMEWORK_PATH/src/completion/generate.sh"
-
-help() {
-cat <<EOF
-$(bold ABOUT)
-    $(bold "$FRAMEWORK_NAME $FRAMEWORK_VERSION")
-
-$(bold "COMMAND"): $(blue completion)
-    (re)generates the shell completion files for $FRAMEWORK_NAME from the
-    installed modules and plugins, and installs them into the shell
-    completion directories.
-
-$(bold USAGE)
-    $FRAMEWORK_NAME completion
-    $FRAMEWORK_NAME completion zsh
-    $FRAMEWORK_NAME completion bash
-
-$(bold EXAMPLE)
-    $(prompt "pj completion")
-    $(prompt "pj completion bash")
-
-EOF
-}
 
 _confirm_generator() {
   [ -e "$GENERATOR" ] || {
@@ -51,28 +35,24 @@ _install() {
   fi
 }
 
-init() {
+zsh() {
   _confirm_generator
+  _install zsh "$HOME/.local/share/zsh/site-functions/_$FRAMEWORK_NAME"
+}
 
-  case "$1" in
-    help)
-      help
-      ;;
-    bash)
-      _install bash "$HOME/.local/share/bash-completion/completions/$FRAMEWORK_NAME"
-      ;;
-    zsh)
-      _install zsh "$HOME/.local/share/zsh/site-functions/_$FRAMEWORK_NAME"
-      ;;
-    "")
-      _install bash "$HOME/.local/share/bash-completion/completions/$FRAMEWORK_NAME"
-      _install zsh "$HOME/.local/share/zsh/site-functions/_$FRAMEWORK_NAME"
-      ;;
-    *)
-      help
-      panic "unknown shell: $1 (expected bash or zsh)" "$ERROR_INVALID_OPTIONS"
-      ;;
-  esac
+bash() {
+  _confirm_generator
+  _install bash "$HOME/.local/share/bash-completion/completions/$FRAMEWORK_NAME"
+}
+
+all() {
+  _confirm_generator
+  bash
+  zsh
+}
+
+init() {
+  app_start "$@"
 }
 
 init "$@"

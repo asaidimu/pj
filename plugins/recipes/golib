@@ -15,7 +15,7 @@ inform "Setting up a Go library project."
 
 check_command "go"
 
-package_name=$(question "Enter package name (e.g., my-package):" $project)
+package_name=$(question "Enter package name (e.g., my-package):" "$PROJECT_NAME")
 package_description=$(question "Enter package description" "")
 author_name=$(question "Enter your name" `git config user.name`)
 author_email=$(question "Enter your email" `git config user.email`)

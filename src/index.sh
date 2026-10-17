@@ -1,17 +1,5 @@
 #!/bin/sh
 
-# -- about --- --------------------------------------------------------------- #
-ABOUT=$(cat <<EOF_ABOUT
-    NAME        : $FRAMEWORK_NAME
-    VERSION     : $FRAMEWORK_VERSION
-    DESCRIPTION : Terminal Project Manager
-    REQUIRES    : sh, tmux, fzf, tree, awk, sed, grep, curl, tar, mkdir, ls, cat, date, read, printf, echo, jq
-
-    AUTHOR      : Lolokile Saidimu
-    LICENSE     : MIT
-EOF_ABOUT
-)
-
 # Run hooks for a command: core hook first, then user hook (if they exist).
 # Core hooks live next to the module; user hooks override/extend them.
 _run_hook() {
@@ -22,10 +10,10 @@ _run_hook() {
   core_hook="$module_dir/$hook_name"
   user_hook="$CUSTOM_PLUGINS_PATH/$hook_cmd/$hook_name"
 
-  if [ -x "$core_hook" ]; then
+  if [ -f "$core_hook" ]; then
     . "$core_hook" "$@"
   fi
-  if [ -x "$user_hook" ]; then
+  if [ -f "$user_hook" ]; then
     . "$user_hook" "$@"
   fi
 }
@@ -52,44 +40,55 @@ _module_start() {
 
   log "Executing module [ $cmd ]"
 
-  # Save original arguments for hooks
-  export MODULE_ORIG_ARGS="$*"
-  export MODULE_ORIG_ARGC=$#
+  warn_missing_deps "$cmd" "$route"
 
-  # Run pre_hook with original args
-  _run_hook "$cmd" pre_hook.sh "$@"
+  (
+    # pre_hook sees the original argv (command word included)
+    _run_hook "$cmd" pre_hook.sh "$@"
 
-  # Run post_hook on exit, preserving the module's exit status
-  trap '_status=$?; _run_hook "$cmd" post_hook.sh $MODULE_ORIG_ARGS; exit "$_status"' EXIT
+    # post_hook replays the same argv on exit, preserving the module's
+    # exit status. The shift happens inside _run_module, so this
+    # subshell's positional parameters stay intact for the trap. The
+    # hook runs in its own subshell so a hook that calls `exit` cannot
+    # swallow the module's status.
+    trap '_status=$?; ( _run_hook "$cmd" post_hook.sh "$@" ); exit "$_status"' EXIT
 
-  # Drop the command name from the arguments before sourcing the module
-  [ "$#" -gt 0 ] && shift
+    _run_module() {
+      # Drop the command name from the arguments before sourcing the module
+      shift
 
-  . "$route"
-}
+      # Point the pragma app layer at the module being sourced
+      export APP_SOURCE="$route"
+      export APP_MODULE=1
 
-# -- remove_flags --
-_remove_flags() {
-  log "checking flags"
+      . "$route"
+    }
 
-  arguments=""
-  for arg in "$@"; do
-    parse_flag "$arg"
-    if [ "$?" -gt "0" ]; then
-        arguments="$arguments $arg"
-    fi
-  done
-
-  export FRAMEWORK_ARGUMENTS="${arguments}"
+    _run_module "$@"
+  )
 }
 
 # -- run_command --
 run_command() {
   log "START"
-  trap 'log "EXIT"' EXIT
-  _remove_flags "$@"
-  # Pass FRAMEWORK_ARGUMENTS as individual arguments
-  _module_start $FRAMEWORK_ARGUMENTS
+
+  # Global flags come before the command word; after it they belong to
+  # the module (e.g. `pj commit -s` is the module's --staged, not the
+  # global --silent). Arguments are never rebuilt, so quoting survives.
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      -s|--silent)      export FLAG_SILENT=1; shift;;
+      -o|--overwrite)   export FLAG_OVERWRITE=1; shift;;
+      --color)          export FLAG_COLORED_OUTPUT=1; shift;;
+      --no-color)       export FLAG_COLORED_OUTPUT=0; shift;;
+      -h|--help)        global_help; exit 0;;
+      -v|--version)     show_version; exit 0;;
+      -*)               panic "unknown flag: $1 (see: pj help)" "$ERROR_UNKNOWN_FLAG";;
+      *)                break;;
+    esac
+  done
+
+  _module_start "$@"
 }
 
 run_command "$@"

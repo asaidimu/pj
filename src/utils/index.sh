@@ -4,8 +4,14 @@
 # logging and output
 . $UTILITIES_PATH/io.sh
 
+# dependency declarations
+. $UTILITIES_PATH/deps.sh
+
 # flags
 . $UTILITIES_PATH/flags.sh
+
+# reflective app layer (pragma-driven CLI)
+. $UTILITIES_PATH/app.sh
 
 # -- utilities --
 . $UTILITIES_PATH/utils.sh

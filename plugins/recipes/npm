@@ -2,7 +2,7 @@
 # NAME        : npm
 # VERSION     : 1.0
 # DESCRIPTION : a base project folder for npm packages
-# REQUIRES    :
+# REQUIRES    : bun
 
 # AUTHOR      : Lolokile Saidimu
 # LICENSE     : MIT
@@ -15,7 +15,7 @@ inform "Setting up an bun project."
 
 check_command "bun"
 
-package_name=$(question "Enter package name (e.g., my-package):" $project)
+package_name=$(question "Enter package name (e.g., my-package):" "$PROJECT_NAME")
 package_description=$(question "Enter package description" "")
 package_scope=$(question "Enter package scope without @:" "")
 author_name=$(question "Enter your name" `git config user.name`)
