@@ -1,3 +1,13 @@
+# [3.0.0](https://github.com/asaidimu/pj/compare/v2.0.0...v3.0.0) (2026-10-17)
+
+
+* feat(framework)!: refactor framework architecture and introduce pragma-driven CLI ([20ae064](https://github.com/asaidimu/pj/commit/20ae0644a64a14366e18103b20bb37878fb0b0fd))
+
+
+### BREAKING CHANGES
+
+* The internal command routing and flag parsing have been overhauled. Plugins and modules now require pragma-based declaration instead of manual parsing code. Custom modules and recipes must be updated to use the new app_start entry point and pragma block format. Internal environment variable management has been centralized, requiring migration for custom configurations relying on legacy direct exports.
+
 # [2.0.0](https://github.com/asaidimu/pj/compare/v1.8.2...v2.0.0) (2026-08-10)
 
 
