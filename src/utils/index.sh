@@ -16,5 +16,8 @@
 # -- utilities --
 . $UTILITIES_PATH/utils.sh
 
+# Gemini agent modules (commit/analyze/document) shared shell helpers
+. $UTILITIES_PATH/agent.sh
+
 
 

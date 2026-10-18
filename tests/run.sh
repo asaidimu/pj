@@ -602,6 +602,66 @@ EOF
   fi
 }
 
+# agent shared runner: the Gemini modules share one bun runner and one
+# shell helper; user plugins can build their own commands on the same pieces
+t_agent_utils() {
+  make_sandbox
+  assert_file "$REPO_ROOT/src/utils/gemini.ts" "shared gemini runner exists"
+  assert_file "$REPO_ROOT/src/utils/agent.sh" "shared agent shell helper exists"
+
+  # agent.sh defines the helpers and is sourced by the utils index
+  if sh -c '. "$1"; type agent_run >/dev/null 2>&1 && type agent_show >/dev/null 2>&1' sh "$REPO_ROOT/src/utils/agent.sh"; then
+    PASS=$((PASS + 1))
+  else
+    FAIL=$((FAIL + 1))
+    FAILED="$FAILED    agent.sh: agent_run/agent_show not defined after sourcing\n"
+  fi
+  if grep -q 'agent\.sh' "$REPO_ROOT/src/utils/index.sh"; then
+    PASS=$((PASS + 1))
+  else
+    FAIL=$((FAIL + 1))
+    FAILED="$FAILED    utils/index.sh: agent.sh not sourced\n"
+  fi
+
+  # with bun, import the shared runner and exercise the file walker
+  if command -v bun >/dev/null 2>&1; then
+    mkdir -p "$SANDBOX/walk/node_modules/x" "$SANDBOX/walk/src" "$SANDBOX/walk/dist"
+    printf 'dist/\n*.local\n' > "$SANDBOX/walk/.gitignore"
+    printf 'x\n' > "$SANDBOX/walk/main.go"
+    printf 'x\n' > "$SANDBOX/walk/src/index.ts"
+    printf 'x\n' > "$SANDBOX/walk/node_modules/x/junk.js"
+    printf 'x\n' > "$SANDBOX/walk/dist/bundle.js"
+    printf 'x\n' > "$SANDBOX/walk/app.local"
+    cat > "$SANDBOX/agent-import.ts" <<EOF
+import { runAgent, callGeminiApi, collectFiles, generateCodebaseSummary } from "$REPO_ROOT/src/utils/gemini";
+const need = [runAgent, callGeminiApi, collectFiles, generateCodebaseSummary];
+if (need.some((f) => typeof f !== "function")) process.exit(1);
+const files = await collectFiles("$SANDBOX/walk", [], []);
+const names = files.map((f) => f.slice("$SANDBOX/walk/".length)).sort();
+process.exit(JSON.stringify(names) === JSON.stringify(["main.go", "src/index.ts"]) ? 0 : 2);
+EOF
+    bun "$SANDBOX/agent-import.ts" >/dev/null 2>&1
+    assert_exit 0 $? "bun imports shared runner, walker excludes defaults+gitignore"
+  fi
+
+  # each agent module uses the shared runner (no local callGeminiApi copies)
+  for m in commit analyze document; do
+    if grep -q 'utils/gemini' "$REPO_ROOT/src/module/$m/main.ts" &&
+       ! grep -q 'callGeminiApi' "$REPO_ROOT/src/module/$m/main.ts"; then
+      PASS=$((PASS + 1))
+    else
+      FAIL=$((FAIL + 1))
+      FAILED="$FAILED    $m/main.ts: does not use shared runner (or still has local callGeminiApi)\n"
+    fi
+    if grep -q 'agent_run' "$REPO_ROOT/src/module/$m/index.sh"; then
+      PASS=$((PASS + 1))
+    else
+      FAIL=$((FAIL + 1))
+      FAILED="$FAILED    $m/index.sh: does not use agent_run\n"
+    fi
+  done
+}
+
 # ---- app layer (pragma reflection) ------------------------------------------
 
 run_fx() {
@@ -948,7 +1008,8 @@ t_question t_radio \
 t_module_missing_dep_warns t_help_user_plugin t_help_self t_hooks \
 t_app_help t_app_flags t_app_routes t_app_requires t_app_args t_app_passthrough \
 t_new_script t_new_module t_env_list t_env_check t_env_check_broken \
-t_completion_zsh t_completion_bash t_completion_all_modules t_agent_prompts"
+t_completion_zsh t_completion_bash t_completion_all_modules t_agent_prompts \
+t_agent_utils"
 
 # ---- runner -----------------------------------------------------------------
 

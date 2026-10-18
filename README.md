@@ -429,6 +429,25 @@ sent to the model; pair it with your own agent/backend of choice. The
 modules themselves send it to Gemini — which model is controlled by
 `PJ_GEMINI_MODEL` (see Environment Variables).
 
+The three modules are the same runner with custom hydration: parse
+args, gather inputs, render the template, call Gemini, write the
+result. The shared pieces live in two files, so your own plugins can
+grow Gemini-backed commands the same way:
+
+- `src/utils/gemini.ts` — `runAgent({label, defaultOutput, options,
+  note, hydrate})` orchestrates the whole flow; `hydrate` is your
+  module's custom part (return the rendered prompt). Also exports
+  `callGeminiApi`, `collectFiles`, `generateCodebaseSummary`,
+  `safeReadFile`, and the gitignore/default exclusion helpers.
+- `src/utils/agent.sh` — `agent_run <main.ts> <output> <err-label>
+  <ok-label> "$@"` runs the bun entry point, then pages and reports the
+  output file; `agent_show <file>` is the glow/less pager.
+
+A minimal plugin agent: a pragma `index.sh` that forwards flags and
+calls `agent_run`, and a `main.ts` that calls `runAgent` with a
+`hydrate` function rendering your `prompt.txt`. Output always lands in
+the directory you ran the command from.
+
 ### Pragma-driven apps
 
 The bundle also ships a reflective app layer: declare your CLI in `# @...`
