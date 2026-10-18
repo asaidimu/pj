@@ -1,3 +1,10 @@
+# [3.2.0](https://github.com/asaidimu/pj/compare/v3.1.0...v3.2.0) (2026-10-18)
+
+
+### Features
+
+* **analyze:** add default excludes and .gitignore support ([7e05d77](https://github.com/asaidimu/pj/commit/7e05d776edadef030f59fd1dca542091259b56df))
+
 # [3.1.0](https://github.com/asaidimu/pj/compare/v3.0.0...v3.1.0) (2026-10-18)
 
 
