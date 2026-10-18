@@ -1,3 +1,10 @@
+## [3.2.1](https://github.com/asaidimu/pj/compare/v3.2.0...v3.2.1) (2026-10-18)
+
+
+### Bug Fixes
+
+* **agent:** extract shared gemini runner and shell agent helpers ([536bcc1](https://github.com/asaidimu/pj/commit/536bcc180b218ba03c96a76a106e4e0b119a6edc))
+
 # [3.2.0](https://github.com/asaidimu/pj/compare/v3.1.0...v3.2.0) (2026-10-18)
 
 
