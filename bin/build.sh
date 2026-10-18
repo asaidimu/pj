@@ -22,7 +22,7 @@ _build(){
 FRAMEWORK_REPOSITORY="$SCRIPT_URL"
 FRAMEWORK_HOMEPAGE="$SCRIPT_URL"
 EOF_ABOUT
-   tar --exclude="./package.json" --exclude="./yarn.lock" --exclude="./install.sh" -Jcf pj.tar.xz ./*
+   tar --exclude="./package.json" --exclude="./bun.lock" --exclude="./yarn.lock" --exclude="./node_modules" --exclude="./install.sh" -Jcf pj.tar.xz ./*
    cp assets/installer.sh install.sh
    _update_template "./install.sh" "version:$VERSION" "url:$SCRIPT_URL"
    echo "SOURCE=\$(cat <<EOF" >> "./install.sh"

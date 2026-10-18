@@ -35,6 +35,8 @@ trap 'rm -f "$MODULES_FILE"' 0
 
 # -- collection ---------------------------------------------------------------
 
+# one awk per module: anchored tag parse (colons in a summary survive,
+# unlike the old greedy sed), no grep/sed/head/tr pipeline
 collect_modules() {
   for route in "$FRAMEWORK_ROUTE" "$CUSTOM_PLUGINS_PATH"; do
     [ -d "$route" ] || continue
@@ -43,20 +45,26 @@ collect_modules() {
       index="$module/index.sh"
       [ -f "$index" ] || continue
 
-      name=$(basename "$module")
-      summary=$(grep "# summary" "$index" | sed -e "s/^.*:[[:space:]]//g" | head -n 1)
-      completion=$(grep "# completion:" "$index" | sed -e "s/^.*:[[:space:]]//g" | head -n 1)
-
-      [ -z "$completion" ] && completion="none"
-      [ -z "$summary" ] && summary="see $FRAMEWORK_NAME $name help"
-      summary=$(printf '%s' "$summary" | tr -d "\`\"':")
-
-      printf '%s:%s:%s\n' "$name" "$summary" "$completion"
+      name="${module##*/}"
+      awk -v name="$name" -v fallback="see $FRAMEWORK_NAME $name help" '
+        /^# *summary:/ && !sum { sub(/^# *summary: */, ""); sum = $0 }
+        /^# *completion:/ && !cmp { sub(/^# *completion: */, ""); cmp = $0 }
+        END {
+          if (sum == "") sum = fallback
+          if (cmp == "") cmp = "none"
+          # colons and quotes would break the record format and _describe
+          gsub(/["`:]/, "", sum)
+          gsub("\047", "", sum)
+          printf "%s:%s:%s\n", name, sum, cmp
+        }
+      ' "$index"
     done
   done
 }
 
-# build group strings (name joined by |) per completion type; skips help
+# build group strings (name joined by |) per completion type; skips help.
+# leaf (no operand completion) is only needed by bash, whose empty case
+# arm keeps those commands from falling through to the command list.
 build_groups() {
   projects=""
   recipes=""
@@ -107,8 +115,6 @@ ZHEAD
     printf '                %s)\n                    _pj_new_completion\n                    ;;\n' "$recipes"
   [ -n "$analysis" ] && \
     printf '                %s)\n                    _pj_project_analysis_completion\n                    ;;\n' "$analysis"
-  [ -n "$leaf" ] && \
-    printf '                %s)\n                    # no additional completion\n                    ;;\n' "$leaf"
   cat <<'ZMID'
                 *)
                     # Check if the command supports help
@@ -149,44 +155,23 @@ ZCMD
     _describe 'help commands' help_commands
 }
 
-# Get list of projects dynamically
+# Project names straight from the projects directory — same thing
+# `pj list` shows, without booting the framework on every TAB.
+# Export PROJECTS_PATH in your shell if you override it in env.sh.
 _pj_get_projects() {
+    local dir="${PROJECTS_PATH:-$HOME/projects}"
     local -a projects
-    # Execute pj list and capture output, handling potential errors gracefully
-    if command -v pj >/dev/null 2>&1; then
-        projects=(${(f)"$(pj list 2>/dev/null)"})
-        if [[ $? -eq 0 && ${#projects[@]} -gt 0 ]]; then
-            printf '%s\n' "${projects[@]}"
-        fi
+    [[ -d $dir ]] || return 0
+    projects=(${(f)"$(command ls -1 "$dir" 2>/dev/null)"})
+    if [[ ${#projects[@]} -gt 0 ]]; then
+        printf '%s\n' "${projects[@]}"
     fi
 }
 
-# Get available recipes dynamically from pj new help
+# Recipe names via the machine-readable `pj new --names`
 _pj_get_recipes() {
     local -a recipes
-    local help_output
-
-    if command -v pj >/dev/null 2>&1; then
-        help_output=$(pj new help 2>/dev/null)
-        if [[ $? -eq 0 ]]; then
-            # Extract recipes: "  name  --  description"
-            recipes=(${(f)"$(printf '%s\n' "$help_output" | \
-                awk '/AVAILABLE RECIPES/ { in_recipes = 1; next }
-                     in_recipes && $0 ~ /--/ {
-                         at = 0
-                         for (i = 1; i <= NF; i++) if ($i == "--") { at = i; break }
-                         if (at > 1) {
-                             desc = ""
-                             for (j = at + 1; j <= NF; j++) {
-                                 gsub(/:/, "", $j)
-                                 desc = (desc == "" ? $j : desc " " $j)
-                             }
-                             print $1 ":" desc
-                         }
-                     }' 2>/dev/null)"})
-        fi
-    fi
-
+    recipes=(${(f)"$(command pj new --names 2>/dev/null)"})
     if [[ ${#recipes[@]} -gt 0 ]]; then
         printf '%s\n' "${recipes[@]}"
     fi
@@ -329,19 +314,15 @@ BMID
 # Complete project names for commands that operate on projects
 _pj_complete_projects() {
     local cur="${COMP_WORDS[COMP_CWORD]}"
+    local dir="${PROJECTS_PATH:-$HOME/projects}"
     local IFS=$'\n'
-    COMPREPLY=( $(compgen -W "$(pj list 2>/dev/null)" -- "$cur") )
+    COMPREPLY=( $(compgen -W "$(command ls -1 "$dir" 2>/dev/null)" -- "$cur") )
 }
 
 # Complete recipe names for pj new
 _pj_complete_recipes() {
     local cur="${COMP_WORDS[COMP_CWORD]}"
-    local recipes
-    recipes="$(pj new help 2>/dev/null | awk '/AVAILABLE RECIPES/ { in_recipes = 1; next }
-         in_recipes && $0 ~ /--/ {
-             for (i = 1; i <= NF; i++) if ($i == "--") { print $1; break }
-         }')"
-    [ -n "$recipes" ] && COMPREPLY=( $(compgen -W "$recipes" -- "$cur") )
+    COMPREPLY=( $(compgen -W "$(command pj new --names 2>/dev/null)" -- "$cur") )
 }
 
 complete -F _pj pj

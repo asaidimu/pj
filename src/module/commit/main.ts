@@ -5,6 +5,7 @@ import { exec } from "child_process";
 import { promisify } from "util";
 import { readFile, writeFile } from "fs/promises";
 import { parseArgs } from "util";
+import { createPrompt } from "./prompts";
 
 // ANSI color utilities
 const bold = (text: string) => `\x1b[1m${text}\x1b[0m`;
@@ -120,157 +121,6 @@ export function stripMarkdown(markdown: string): string {
     .trim();
 }
 
-// Gemini API prompt for conventional commit
-function createPrompt(branch:string, diff: string, docsContent: string | null, commitType?: string): string {
-    const prompt = `You are a senior software engineer and release manager. Your task is to generate a single, complete Conventional Commit message based on the Git diff provided below. This message will be used in an automated release pipeline powered by semantic-release (https://github.com/semantic-release/semantic-release) and must strictly follow the Conventional Commits specification.
-
----
-### Project Documentation
-${docsContent ? `
-The following is the full content of the project's documentation file (e.g., README.md) to provide context about the project's purpose, structure, or features:
-
-\`\`\`markdown
-${docsContent}
-\`\`\`
-` : "No documentation file provided or available."}
-
-### Git branch
-${branch}
-### Git Diff
-
-\`\`\`diff
-${diff}
-\`\`\`
-
----
-
-### IMPORTANT: OUTPUT FORMAT MUST BE PLAIN TEXT ONLY
-
-- Your response **MUST BE ONLY PLAIN TEXT**.
-- **Do NOT include any markdown syntax** such as backticks, code blocks, asterisks, underscores, or other formatting.
-- The commit message must be exactly as it would appear in a git commit, readable in any terminal or tool.
-- Any markdown formatting in your output WILL BREAK downstream tooling like semantic-release and changelog generators.
-- Treat this as a strict requirement, not a suggestion.
-- The master branch for release is 'main'. DO NOT INDICATE BREAKING CHANGES ON BRANCHES THAT ARE NOT MAIN. EVEN IF THEY ARE BREAKING CHANGES
-
----
-
-### Instructions
-
-1. Purpose
-
-Each commit message contributes directly to automated versioning and changelog generation. A correct commit message:
-- Determines the semantic version bump (major, minor, patch)
-- Signals whether a release should occur
-- Is parsed by semantic-release to automate changelogs and GitHub releases
-
-If the change affects functionality visible to users (CLI flags, public API behavior, configuration options), ensure README.md or relevant documentation is updated accordingly.
-
-No change is too small to commit. Every commit affects the release outcome, however be aware of the branch you are on.
-
-
-2. Analyze the Change
-
-From the diff, determine:
-- What was changed? (feature, bug fix, refactor, formatting, etc.)
-- Why was it changed? (to add, improve, fix, restructure)
-- Is the change breaking? (affects backward compatibility or contract)
-- Should the change be visible in the changelog?
-- Is README.md or other documentation out of sync?
-
-3. Determine Commit Components
-
-- Type: Infer the type from:
-  - feat: new feature
-  - fix: bug fix
-  - docs: documentation only (e.g., README.md)
-  - style: formatting or whitespace only (no behavior change)
-  - refactor: code change without behavior change
-  - perf: performance improvement
-  - test: tests only
-  - build: build system or dependencies
-  - ci: CI/CD config
-  - chore: misc maintenance
-  - revert: reverts previous commit
-
-- Scope: short lowercase keyword for affected module or feature (auth, api, cli, config, deps)
-
-- Description:
-  - Use imperative mood (add, fix, refactor, not adds or fixed)
-  - Limit to 50–72 characters
-  - Focus on primary intent or outcome
-
-- Breaking Changes:
-  - Append ! after scope if breaking
-  - Add a BREAKING CHANGE: footer with impact and migration instructions
-
-- Extended Body (optional):
-  - Use to clarify complex changes, rationale, or migration notes
-
-4. Output Format
-
-Return exactly one valid commit message as plain text **without any markdown formatting**.
-
-Accepted formats:
-
-Standard (summary only):
-<type>(<scope>): <short summary>
-
-With body:
-<type>(<scope>): <short summary>
-
-<detailed explanation or list of changes>
-
-With breaking change:
-<type>(<scope>)!: <short summary>
-
-BREAKING CHANGE: <impact, motivation, migration instructions>
-
-5. Additional Notes
-
-- The commit message directly affects automated releases via semantic-release.
-- If the change impacts user-facing behavior or public API, README.md or relevant documentation must be updated.
-- Under no circumstances include markdown formatting.
-- If no meaningful change is detected, return an error message explaining why.
-
----
-
-### Examples
-
-Simple fix:
-fix(auth): correct token expiration logic
-
-Multiple related changes:
-feat(api): support pagination in search endpoint
-
-- Add page and limit query parameters
-- Update swagger docs to reflect API change
-
-Breaking refactor:
-refactor(config)!: remove deprecated env variables
-
-BREAKING CHANGE: The following environment variables are no longer supported:
-- APP_SECRET
-- ENABLE_DEBUG
-
-Use CONFIG_SECRET and LOG_LEVEL instead. See migration guide.
-
-README update related to release:
-docs(readme): document new CLI --dry-run flag
-
----
-
-Summary:
-
-- Write exactly one valid Conventional Commit message in **plain text only**
-- No markdown anywhere in your output
-- The message must be compatible with semantic-release
-- Be precise, consistent, and deliberate
-`;
-
-    return prompt
-}
-
 // Call Gemini API
 async function callGeminiApi(prompt: string): Promise<string> {
   const apiKey = process.env.GEMINI_API_KEY;
@@ -278,7 +128,9 @@ async function callGeminiApi(prompt: string): Promise<string> {
     console.error("Error: GEMINI_API_KEY not set");
     process.exit(1);
   }
-  const model = "gemini-2.5-flash-preview-05-20";
+  // respects the framework's env naming: PJ_GEMINI_MODEL (or <UPPER_FRAMEWORK_NAME>_GEMINI_MODEL)
+  const framework = process.env.FRAMEWORK_NAME || "pj";
+  const model = process.env[`${framework.toUpperCase()}_GEMINI_MODEL`] || "gemini-3.8-flash";
 
   const response = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
@@ -317,7 +169,7 @@ async function main() {
 
   const {diff, branch} = await getGitDiff(targetDir, staged);
   const docsContent = await readDocsFile(targetDir, docs);
-  const prompt = createPrompt(branch, diff, docsContent, type);
+  const prompt = createPrompt(branch, diff, docsContent);
   const commitMessage = await callGeminiApi(prompt);
   await writeFile(join(targetDir, outputFile), commitMessage);
 }

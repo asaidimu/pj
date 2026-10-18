@@ -156,7 +156,9 @@ async function callGeminiApi(prompt: string): Promise<string> {
     console.error("Error: GEMINI_API_KEY not set");
     process.exit(1);
   }
-  const model = "gemini-2.5-flash-preview-05-20";
+  // respects the framework's env naming: PJ_GEMINI_MODEL (or <UPPER_FRAMEWORK_NAME>_GEMINI_MODEL)
+  const framework = process.env.FRAMEWORK_NAME || "pj";
+  const model = process.env[`${framework.toUpperCase()}_GEMINI_MODEL`] || "gemini-3.8-flash";
 
   const response = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,

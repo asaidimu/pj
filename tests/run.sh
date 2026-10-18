@@ -207,6 +207,13 @@ t_new_no_args() {
   pj "$1" new; assert_exit 2 $? "new with no args"
 }
 
+# --names is the machine-readable list the completions consume
+t_new_names() {
+  make_sandbox
+  pj "$1" new --names; assert_exit 0 $? "new --names ok"
+  assert_out "base" "new --names lists base"
+}
+
 t_new_bad_recipe() {
   make_sandbox
   pj "$1" new doesnotexist x; assert_exit 5 $? "unknown recipe"
@@ -268,6 +275,53 @@ t_version() {
 t_flag_silent() {
   make_sandbox alpha
   pj "$1" -s list; assert_exit 0 $? "silent flag still runs"
+}
+
+# bare `pj` (no command) defaults to open; the dispatcher must not shift
+# an empty argv on the way there
+t_bare_defaults_to_open() {
+  make_sandbox alpha
+  pj "$1" >/dev/null 2>&1
+  _bare=$?
+  _bare_err=$(cat "$SANDBOX/err" 2>/dev/null)
+  pj "$1" open >/dev/null 2>&1
+  _open=$?
+  assert_exit "$_open" "$_bare" "bare pj matches pj open"
+  case "$_bare_err" in
+    *shift*) FAIL=$((FAIL + 1)); FAILED="$FAILED    bare pj: stderr must not mention shift: $_bare_err\n";;
+    *) PASS=$((PASS + 1));;
+  esac
+}
+
+# hooks: pre_hook runs in the command shell (exports visible), post_hooks
+# all run — a core hook calling `exit` must not skip the user hook — and
+# post_hooks run even when the module fails, preserving its status
+t_hooks() {
+  make_sandbox
+  mkdir -p "$SANDBOX/home/.config/pj/plugins/new" "$SANDBOX/home/.config/pj/plugins/fail"
+
+  printf 'echo USER-NEW-PRE\n' > "$SANDBOX/home/.config/pj/plugins/new/pre_hook.sh"
+  printf 'echo USER-NEW-POST\n' > "$SANDBOX/home/.config/pj/plugins/new/post_hook.sh"
+  pj "$1" new base beta
+  assert_out "USER-NEW-PRE" "user pre_hook runs for core command"
+  assert_out "USER-NEW-POST" "user post_hook runs alongside exiting core hook"
+  assert_file "$SANDBOX/home/.config/pj/data/projects" "core new post_hook still refreshes"
+
+  cat > "$SANDBOX/home/.config/pj/plugins/fail/index.sh" <<'EOF'
+#!/bin/sh
+# summary: fails on purpose
+main() {
+  echo "state=${HOOK_STATE:-unset}"
+  return 1
+}
+app_start "$@"
+EOF
+  printf 'export HOOK_STATE=from-pre\n' > "$SANDBOX/home/.config/pj/plugins/fail/pre_hook.sh"
+  printf 'touch "$HOME/.config/pj/post-ran"\n' > "$SANDBOX/home/.config/pj/plugins/fail/post_hook.sh"
+  pj "$1" fail
+  assert_exit 1 $? "failing module status preserved"
+  assert_out "state=from-pre" "pre_hook export reaches the module"
+  assert_file "$SANDBOX/home/.config/pj/post-ran" "post_hook runs after module failure"
 }
 
 # default paths (Phase 1: PROJECTS_PATH defaults to $HOME/projects)
@@ -473,6 +527,13 @@ t_completion_bash() {
 # generator must include every core module (name:summary lines)
 t_completion_all_modules() {
   make_sandbox
+  mkdir -p "$SANDBOX/home/.config/pj/plugins/colon"
+  cat > "$SANDBOX/home/.config/pj/plugins/colon/index.sh" <<'EOF'
+#!/bin/sh
+# --------
+# summary: fixes: things with colons
+# --------
+EOF
   _zsh_out=$(
     HOME="$SANDBOX/home" \
     FRAMEWORK_PATH="$REPO_ROOT" \
@@ -490,6 +551,55 @@ t_completion_all_modules() {
       FAILED="$FAILED    completion all modules: missing $m\n"
     fi
   done
+  # a summary containing ':' must not be truncated at the last colon
+  if printf '%s' "$_zsh_out" | grep -q "'colon:fixes things with colons'"; then
+    PASS=$((PASS + 1))
+  else
+    FAIL=$((FAIL + 1))
+    FAILED="$FAILED    completion all modules: colon summary mangled\n"
+  fi
+}
+
+# agent prompt templates: the Gemini-backed modules keep their prompts as
+# reusable {{PLACEHOLDER}} text templates next to main.ts
+t_agent_prompts() {
+  make_sandbox
+  assert_file "$REPO_ROOT/src/utils/prompt.ts" "shared prompt renderer exists"
+  for m in commit analyze document; do
+    _t="$REPO_ROOT/src/module/$m/prompt.txt"
+    assert_file "$_t" "$m prompt template exists"
+    if grep -q '{{[A-Z_]\{1,\}}}' "$_t"; then
+      PASS=$((PASS + 1))
+    else
+      FAIL=$((FAIL + 1))
+      FAILED="$FAILED    $m prompt template: no {{PLACEHOLDER}} slots found\n"
+    fi
+  done
+  if grep -q '{{DIFF}}' "$REPO_ROOT/src/module/commit/prompt.txt" &&
+     grep -q '{{CODEBASE_SUMMARY}}' "$REPO_ROOT/src/module/analyze/prompt.txt" &&
+     grep -q '{{CODEBASE_SUMMARY}}' "$REPO_ROOT/src/module/document/prompt.txt"; then
+    PASS=$((PASS + 1))
+  else
+    FAIL=$((FAIL + 1))
+    FAILED="$FAILED    agent prompts: expected placeholder names missing\n"
+  fi
+
+  # with bun available, render each template through the real wrappers
+  if command -v bun >/dev/null 2>&1; then
+    cat > "$SANDBOX/render.ts" <<EOF
+import { createPrompt as commit } from "$REPO_ROOT/src/module/commit/prompts";
+import { createPrompt as analyze } from "$REPO_ROOT/src/module/analyze/prompts";
+import { createPrompt as document } from "$REPO_ROOT/src/module/document/prompts";
+const rendered = [
+  commit("main", "diff --git a/x b/x", null),
+  analyze("SNAP"),
+  document("SNAP"),
+];
+process.exit(rendered.every((r) => r.length > 0 && !/\{\{\w+\}\}/.test(r)) ? 0 : 1);
+EOF
+    bun "$SANDBOX/render.ts" >/dev/null 2>&1
+    assert_exit 0 $? "bun renders all prompt templates"
+  fi
 }
 
 # ---- app layer (pragma reflection) ------------------------------------------
@@ -694,6 +804,8 @@ t_env_list() {
   assert_out "override" "env shows override scope"
   assert_out "derived" "env shows derived scope"
   assert_out "ERROR_ILLEGAL_OP" "env lists error codes"
+  assert_out "PJ_GEMINI_MODEL" "env lists PJ_GEMINI_MODEL"
+  assert_out "gemini-3.8-flash" "env defaults PJ_GEMINI_MODEL to gemini-3.8-flash"
 }
 
 t_env_check() {
@@ -827,15 +939,16 @@ EOF
 
 ALL_TESTS="t_list_ok t_list_empty_ok t_help_ok t_module_help t_unknown_command \
 t_unknown_flag t_help_extended t_module_pragma \
-t_new_no_args t_new_bad_recipe t_new_creates_project t_new_existing_no_overwrite \
+t_new_no_args t_new_names t_new_bad_recipe t_new_creates_project t_new_existing_no_overwrite \
 t_new_existing_overwrite t_archive_ok t_archive_missing t_delete_missing \
-t_list_missing t_refresh_ok t_version t_flag_silent t_default_paths \
+t_list_missing t_refresh_ok t_version t_flag_silent t_bare_defaults_to_open \
+t_default_paths \
 t_deps_module_requires t_deps_missing t_bare_system_list \
 t_question t_radio \
-t_module_missing_dep_warns t_help_user_plugin t_help_self \
+t_module_missing_dep_warns t_help_user_plugin t_help_self t_hooks \
 t_app_help t_app_flags t_app_routes t_app_requires t_app_args t_app_passthrough \
 t_new_script t_new_module t_env_list t_env_check t_env_check_broken \
-t_completion_zsh t_completion_bash t_completion_all_modules"
+t_completion_zsh t_completion_bash t_completion_all_modules t_agent_prompts"
 
 # ---- runner -----------------------------------------------------------------
 

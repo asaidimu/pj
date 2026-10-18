@@ -10,6 +10,7 @@
 # @flag    -o, --overwrite       overwrite an existing project, script or module
 # @flag    --script=<file.sh>    scaffold a standalone script in the current directory
 # @flag    --module=<name>       scaffold a user module under the plugins directory
+# @flag    --names               list recipe names, one per line (used by completions)
 # @arg     [<recipe>]            recipe name (see the documentation for built-in recipes)
 # @arg     [<project-name>]      name of the project to create
 
@@ -74,6 +75,17 @@ scaffold_module() {
   inform "Declare the CLI in the # @... block, then run: $FRAMEWORK_NAME $name"
 }
 
+# machine-readable recipe list for shell completions: user recipes first,
+# then built-ins, deduped by name
+list_recipes() {
+  for dir in "$CUSTOM_RECIPES_PATH" "$RECIPES_PATH"; do
+    [ -d "$dir" ] || continue
+    for r in "$dir"/*; do
+      [ -f "$r" ] && [ -x "$r" ] && printf '%s\n' "${r##*/}"
+    done
+  done | sort -u
+}
+
 parse_args() {
   plugin="$1"
   _project="$2"
@@ -115,6 +127,11 @@ main() {
   # accept -o both as a global flag (pj -o new ...) and as a module flag
   # (pj new -o ...)
   [ -n "${OPT_OVERWRITE:-}" ] && export FLAG_OVERWRITE=1
+
+  if [ -n "${OPT_NAMES:-}" ]; then
+    list_recipes
+    return $?
+  fi
 
   if [ -n "${OPT_MODULE:-}" ]; then
     scaffold_module "$OPT_MODULE"

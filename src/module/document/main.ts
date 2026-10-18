@@ -3,6 +3,7 @@
 import { join, resolve } from "path";
 import { readdir, readFile, stat, writeFile } from "fs/promises";
 import { parseArgs } from "util";
+import { createPrompt } from "./prompts";
 
 // ANSI color utilities
 const bold = (text: string) => `\x1b[1m${text}\x1b[0m`;
@@ -140,130 +141,6 @@ async function generateCodebaseSummary(files: string[]): Promise<string> {
   return summary;
 }
 
-// Gemini API prompt for README generation
-function createPrompt(codebaseSummary: string): string {
-  return `# README Generation Task
-
-You are an expert technical writer and software architect. Generate a comprehensive, professional README.md file in markdown format based on the provided codebase snapshot. The README should be publication-ready for a public repository and follow modern documentation standards.
-
-## Codebase Analysis
-\`\`\`
-${codebaseSummary}
-\`\`\`
-
-## Required Structure
-
-Generate a **complete markdown document** with these sections in order:
-
-### 1. Header Section
-- **Project Title**: Clear, descriptive name (infer from package.json, directory structure, or main functionality)
-- **Brief Description**: One-sentence overview of the project's primary purpose
-- **Badges** (if applicable): Version, license, build status placeholders using shields.io format
-- **Quick Links**: Table of contents for easy navigation
-
-### 2. Overview & Features
-- **Detailed Description**: 2-3 paragraphs explaining what the project does and why it exists
-- **Key Features**: Bulleted list of main functionalities, inferred from:
-  - CLI commands and options
-  - API endpoints and methods
-  - Plugin capabilities
-  - Configuration options
-  - File processing capabilities
-
-### 3. Installation & Setup
-- **Prerequisites**: Required software, versions, environment variables
-- **Installation Steps**: Package manager commands, global vs local installation
-- **Configuration**: Environment setup, config files, API keys
-- **Verification**: How to confirm successful installation
-
-### 4. Usage Documentation
-- **Basic Usage**: Simple examples with expected output
-- **CLI Commands**: Complete command reference with options and flags
-- **API Usage**: Code examples for programmatic usage
-- **Configuration Examples**: Sample config files with explanations
-- **Common Use Cases**: Real-world scenarios with step-by-step instructions
-
-### 5. Project Architecture
-- **Core Components**: Brief explanation of main modules/classes. Do not mention filepaths as these may change.
-- **Data Flow**: How components interact (if complex)
-- **Extension Points**: Plugin system, hooks, or customization options
-
-### 6. Development & Contributing
-- **Development Setup**: How to set up for local development
-- **Scripts**: Available npm/yarn scripts and their purposes
-- **Testing**: How to run tests, coverage requirements
-- **Contributing Guidelines**: PR process, coding standards, commit conventions
-- **Issue Reporting**: How to report bugs or request features
-
-### 7. Additional Information
-- **Troubleshooting**: Common issues and solutions
-- **FAQ**: Anticipated questions based on functionality
-- **Changelog/Roadmap**: Link to changelog or future plans
-- **License**: License type and link to full text
-- **Acknowledgments**: Credits, inspirations, or related projects
-
-## Content Guidelines
-
-### Technical Accuracy
-- Infer technology stack from dependencies, file extensions, and imports
-- Identify framework patterns (Express, CLI tools, build systems, etc.)
-- Recognize common conventions (TypeScript, ESLint, Prettier, etc.)
-- Detect testing frameworks and build tools
-
-### Writing Style
-- Use active voice and present tense
-- Write for developers of varying experience levels
-- Include practical examples with realistic data
-- Explain "why" not just "how" for complex features
-- Use consistent terminology throughout
-
-### Code Examples
-- Provide brief, working, copy-pasteable examples.
-- Use proper syntax highlighting with language tags
-- Include error handling in examples where relevant
-
-### Formatting Standards
-- Use proper markdown hierarchy (# ## ### ####)
-- Include code blocks with appropriate language tags
-- Use tables for structured data (commands, options, etc.)
-- Add horizontal rules to separate major sections
-- Include emoji sparingly for visual breaks (📁 🚀 ⚡ etc.)
-
-## Special Considerations
-
-### For CLI Tools
-- Document all commands, subcommands, and options
-- Show help output and usage patterns
-- Include installation verification steps
-- Explain configuration file locations and formats
-
-### For Libraries/APIs
-- Provide import/require statements
-- Show initialization and basic usage
-- Document main classes, methods, and properties
-- Include TypeScript definitions if applicable
-
-### For Frameworks/Plugins
-- Explain integration process
-- Show configuration examples
-- Document extension/plugin development
-- Include compatibility information
-
-## Output Requirements
-
-- Generate **only** the markdown content (no meta-commentary)
-- Ensure all sections are complete with realistic content
-- Use proper markdown syntax throughout
-- Include placeholder links that follow realistic patterns
-- Make content specific to the analyzed codebase, not generic templates
-- Ensure the README is immediately usable without further editing
-- The README should always reflect the current codebase state. Do not regurgitate stale documentation.
-
----
-
-**Generate the complete README.md content now:**`;
-}
-
 // Call Gemini API
 async function callGeminiApi(prompt: string): Promise<string> {
   const apiKey = process.env.GEMINI_API_KEY;
@@ -271,7 +148,9 @@ async function callGeminiApi(prompt: string): Promise<string> {
     console.error("Error: GEMINI_API_KEY not set");
     process.exit(1);
   }
-  const model = "gemini-2.5-flash-preview-05-20";
+  // respects the framework's env naming: PJ_GEMINI_MODEL (or <UPPER_FRAMEWORK_NAME>_GEMINI_MODEL)
+  const framework = process.env.FRAMEWORK_NAME || "pj";
+  const model = process.env[`${framework.toUpperCase()}_GEMINI_MODEL`] || "gemini-3.8-flash";
 
   const response = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,

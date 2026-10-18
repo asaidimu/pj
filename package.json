@@ -4,7 +4,7 @@
   "scripts": {
     "build": "./bin/build.sh",
     "publish": "./bin/publish.sh",
-    "ci": "yarn install && yarn upgrade"
+    "ci": "bun install && bun update"
   },
   "devDependencies": {
     "@semantic-release/changelog": "^6.0.1",
@@ -33,7 +33,7 @@
           "assets": [
             "CHANGELOG.md",
             "package.json",
-            "yarn.lock"
+            "bun.lock"
           ],
           "message": "chore(release): Release v${nextRelease.version}\n\n${nextRelease.notes}"
         }

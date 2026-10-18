@@ -18,6 +18,23 @@ _run_hook() {
   fi
 }
 
+# Post hooks, each in its own subshell: a hook calling `exit` must not
+# skip the hooks after it (the new module's core hook ends in `exit 0`).
+_run_post_hooks() {
+  hook_cmd="$1"
+  shift
+
+  core_hook="$module_dir/post_hook.sh"
+  user_hook="$CUSTOM_PLUGINS_PATH/$hook_cmd/post_hook.sh"
+
+  if [ -f "$core_hook" ]; then
+    ( . "$core_hook" "$@" )
+  fi
+  if [ -f "$user_hook" ]; then
+    ( . "$user_hook" "$@" )
+  fi
+}
+
 # -- module_start --
 _module_start() {
   cmd="$1"
@@ -43,19 +60,25 @@ _module_start() {
   warn_missing_deps "$cmd" "$route"
 
   (
-    # pre_hook sees the original argv (command word included)
+    # pre_hook sees the original argv (command word included) and runs in
+    # this shell, so it can export state for the command
     _run_hook "$cmd" pre_hook.sh "$@"
 
     # post_hook replays the same argv on exit, preserving the module's
     # exit status. The shift happens inside _run_module, so this
     # subshell's positional parameters stay intact for the trap. The
-    # hook runs in its own subshell so a hook that calls `exit` cannot
-    # swallow the module's status.
-    trap '_status=$?; ( _run_hook "$cmd" post_hook.sh "$@" ); exit "$_status"' EXIT
+    # hooks run in their own subshells so a hook that calls `exit`
+    # (e.g. new's `exit 0`) can neither swallow the module's status nor
+    # skip the remaining hooks.
+    trap '_status=$?; ( _run_post_hooks "$cmd" "$@" ); exit "$_status"' EXIT
 
     _run_module() {
-      # Drop the command name from the arguments before sourcing the module
-      shift
+      # Drop the command name from the arguments before sourcing the
+      # module. A bare `pj` defaults to `open` with an empty argv —
+      # there is nothing to drop and `shift` would fail.
+      if [ $# -gt 0 ]; then
+        shift
+      fi
 
       # Point the pragma app layer at the module being sourced
       export APP_SOURCE="$route"

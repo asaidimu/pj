@@ -61,6 +61,14 @@ env_set PROJECTS_PATH         str override "where projects live" "${PROJECTS_PAT
 env_set CUSTOM_PLUGINS_PATH   str override "user plugins directory" "${CUSTOM_PLUGINS_PATH:-$FRAMEWORK_CONFIG_DIR/plugins}"
 env_set CUSTOM_RECIPES_PATH   str override "user recipes directory" "${CUSTOM_RECIPES_PATH:-$CUSTOM_PLUGINS_PATH/recipes}"
 
+# -- agent modules (commit/analyze/document) --
+# uppercased framework name so a renamed FRAMEWORK_NAME=foo keeps working
+# (foo_GEMINI_MODEL); preserves any value already set in the environment
+_gemini_name="$(printf '%s' "$FRAMEWORK_NAME" | tr '[:lower:]' '[:upper:]')_GEMINI_MODEL"
+eval "_gemini_val=\${$_gemini_name:-gemini-3.8-flash}"
+env_set "$_gemini_name" str override "Gemini model used by the commit/analyze/document modules" "$_gemini_val"
+unset _gemini_name _gemini_val
+
 # -- load user config --
 [ -f "$FRAMEWORK_CONFIG" ] && . "$FRAMEWORK_CONFIG"
 

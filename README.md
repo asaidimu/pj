@@ -65,6 +65,8 @@ Run PJ commands with the following syntax:
 pj <command> [options]
 ```
 
+Running `pj` with no command defaults to `pj open`.
+
 ### Common Commands
 
 - `pj open` – Open a project (fuzzy selection with fzf, opens in a tmux session).
@@ -113,7 +115,7 @@ pj completion bash       # bash only
 |-------------------------|--------------------------------|
 | (unset) / `none`        | no operand completion          |
 | `projects`              | project names (`pj list`)      |
-| `recipes`               | recipe names (`pj new help`)   |
+| `recipes`               | recipe names (`pj new --names`)|
 | `analysis`              | analyze/commit/document style  |
 
 ### Quickstart Example
@@ -175,6 +177,7 @@ Override default settings by editing (or creating) `~/.config/pj/env.sh`:
 ```sh
 # Example ~/.config/pj/env.sh
 export PROJECTS_PATH="$HOME/my-projects"
+export PJ_GEMINI_MODEL="gemini-3.6-flash"   # pin the agent modules' Gemini model
 ```
 
 Every variable is declared once in `src/env.sh` with a name, kind
@@ -187,12 +190,19 @@ pj env check     # verify all of them (exit code = number of issues)
 ```
 
 Variables marked `override` in `pj env` are the ones your `env.sh` may
-set; `derived` paths (`PROJECTS_DATA`, `ARCHIVE_PATH`, `PROJECTS_LIST`, …)
-are computed *after* your `env.sh` is loaded, so overrides always take
-effect. Runtime directories (including `PROJECTS_PATH`) are created on
-first run. The startup environment check and `pj env check` run the same
-verification, so adding a variable with `env_set` in `src/env.sh` makes
-it listed and checked automatically — no other lists to update.
+set; the rest (`derived` paths like `PROJECTS_DATA`, `ARCHIVE_PATH` and
+`PROJECTS_LIST`) are computed *after* your `env.sh` is loaded, so
+overrides always take effect. Runtime directories (including
+`PROJECTS_PATH`) are created on first run. The startup environment check
+and `pj env check` run the same verification, so adding a variable with
+`env_set` in `src/env.sh` makes it listed and checked automatically — no
+other lists to update.
+
+One override worth knowing: `PJ_GEMINI_MODEL` (default
+`gemini-3.8-flash`) selects which Gemini model `pj commit`, `pj analyze`
+and `pj document` call. It's the uppercased framework name with
+`_GEMINI_MODEL` appended, so a renamed framework reads
+`FOO_GEMINI_MODEL` instead.
 
 Changes to `env.sh` are applied automatically on the next PJ command run.
 
@@ -200,44 +210,113 @@ Changes to `env.sh` are applied automatically on the next PJ command run.
 
 ### Adding Custom Plugins
 
-To create a custom command:
+A plugin is a directory under `~/.config/pj/plugins/` containing an
+`index.sh`. It is sourced into the running framework shell, so it sees the
+framework utilities (i/o, colors, app layer) and all framework environment
+variables. Once it is there it is a first-class command: `pj <name>` works
+immediately, it shows up in `pj help`, `pj help <name>` renders its help,
+and shell completions pick it up after `pj completion`. A user plugin
+shadows a core command with the same name.
 
-1. Create a plugin directory:
-   ```sh
-   mkdir -p ~/.config/pj/plugins/myplugin
-   ```
-2. Add an `index.sh` file with your plugin logic:
-   ```sh
-   #!/bin/sh
+Scaffold one:
 
-   help() {
-     echo "Usage: pj myplugin"
-     echo "Prints Hello from my custom plugin!"
-   }
+```sh
+pj new --module greet
+```
 
-   init() {
-     case "$1" in
-       help)
-         help
-         ;;
-       *)
-         echo "Hello from my custom plugin!"
-         ;;
-     esac
-   }
+This writes `~/.config/pj/plugins/greet/index.sh`, pragma-driven and
+ready to run:
 
-   init "$@"
-   ```
-3. Make the script executable:
-   ```sh
-   chmod +x ~/.config/pj/plugins/myplugin/index.sh
-   ```
-4. Run your plugin:
-   ```sh
-   pj myplugin
-   ```
+```sh
+#!/bin/sh
+# --------
+# summary: greet module
+# completion: none
+# --------
+# @about   say hello from the greet module
+# @usage   pj greet [command]
+# @route   hello  greet the world
+# @default hello
 
-User plugins take precedence over core commands with the same name.
+hello() {
+  inform "Hello from greet!"
+}
+
+app_start "$@"
+```
+
+Edit the function bodies, then `pj greet` — there is no parsing code to
+maintain: flags, routing, `--help`, dependency checks and argument
+positionals are all derived from the `# @...` block (see
+[Pragma-driven apps](#pragma-driven-apps) for the full pragma grammar).
+
+#### Module header tags
+
+The block of `#` lines before the pragmas describes the module to the
+framework:
+
+| Tag | Effect |
+|---|---|
+| `# summary: <one-liner>` | shown in `pj help` and shell completions |
+| `# completion: <type>` | operand completion: `projects`, `recipes`, `analysis`, or `none` (default) |
+| `# requires: <tool ...>` | extra tools this plugin needs — missing ones warn at install and at run time, never blocking pj |
+
+#### Writing a plugin by hand
+
+Same shape as the scaffold: header tags, a `# @...` block declaring the
+CLI, one function per route, and `app_start` doing the parsing. `index.sh`
+is sourced (not executed), so the framework utilities are already there:
+
+```sh
+#!/bin/sh
+# --------
+# summary: greets people
+# completion: none
+# --------
+# @about    greets people, loudly or politely
+# @usage    pj hello [greet|shout] [name]
+# @flag     -l, --loud     shout instead of greet
+# @route    greet   a polite greeting (default)
+# @route    shout   an enthusiastic greeting
+
+greet() {
+  name="${1:-World}"
+  [ -n "${OPT_LOUD:-}" ] && name=$(printf '%s' "$name" | tr '[:lower:]' '[:upper:]')
+  inform "Hello, $name!"
+}
+
+shout() {
+  OPT_LOUD=1
+  greet "$@"
+}
+
+app_start "$@"
+```
+
+Flags, routing, `--help`, arity checks and quoting are all derived from
+the block: `pj hello`, `pj hello greet "a b"`, `pj hello shout bob` and
+`pj hello --loud shout bob` all work without any parsing code. With
+routes declared the first positional is the route name (defaulted by
+`@default`); anything after it is passed to the route function. Without
+any `# @...` pragma, `app_start` stays out of the way and forwards
+everything to `main "$@"`.
+
+Rules of thumb:
+
+- Be POSIX-compliant — plugins run in the user's shell (dash, bash, zsh, ksh).
+- Source nothing; the framework utilities are already loaded. For a
+  standalone script outside pj, source the io bundle instead (see
+  [Using the io library](#using-the-io-library-in-your-own-scripts)).
+- Use `panic "message" "$ERROR_ILLEGAL_OP"` (or another `ERROR_*` code)
+  for failures — it prints and exits non-zero consistently.
+- Re-run `pj completion` after adding or removing plugins if completions
+  are stale.
+
+#### Plugin hooks
+
+Drop `pre_hook.sh` / `post_hook.sh` next to `index.sh` to run code before
+or after every `pj <name>` invocation; they receive the same arguments as
+the plugin. See [Command Lifecycle Hooks](#command-lifecycle-hooks).
 
 ### Adding Custom Recipes
 
@@ -321,6 +400,35 @@ cancels with rc 1.
 Set `FRAMEWORK_LIB` to use a relocated pj. The bundle is rebuilt from
 `src/utils/{colors,io,app}.sh` on every install and `pj update`.
 
+### Agent prompt templates
+
+The AI-backed commands (`pj commit`, `pj analyze`, `pj document`) keep
+their Gemini prompts as plain-text templates with `{{PLACEHOLDER}}` slots
+— any agent or script can reuse them, no TypeScript required:
+
+```
+$FRAMEWORK_PATH/src/module/commit/prompt.txt      {{DOCS}} {{BRANCH}} {{DIFF}}
+$FRAMEWORK_PATH/src/module/analyze/prompt.txt     {{CODEBASE_SUMMARY}}
+$FRAMEWORK_PATH/src/module/document/prompt.txt    {{CODEBASE_SUMMARY}}
+```
+
+Render one from the shell:
+
+```sh
+tpl="$FRAMEWORK_PATH/src/module/commit/prompt.txt"
+rendered=$(awk -v diff="$DIFF" -v branch="$BRANCH" -v docs="$DOCS" '
+  { gsub(/\{\{DIFF\}\}/, diff); gsub(/\{\{BRANCH\}\}/, branch);
+    gsub(/\{\{DOCS\}\}/, docs); print }
+' "$tpl")
+```
+
+From bun, `src/utils/prompt.ts` provides `loadTemplate(path)` and
+`renderTemplate(template, vars)` — the same helpers the modules'
+`prompts.ts` wrappers use. A rendered template is just the prompt text
+sent to the model; pair it with your own agent/backend of choice. The
+modules themselves send it to Gemini — which model is controlled by
+`PJ_GEMINI_MODEL` (see Environment Variables).
+
 ### Pragma-driven apps
 
 The bundle also ships a reflective app layer: declare your CLI in `# @...`
@@ -380,56 +488,27 @@ layer: their pragmas render `pj <command> help`, and the dispatcher sets
 
 ### Plugin Pattern
 
-Scaffold a ready-to-run module with `pj new --module <name>` — it lands in
-`~/.config/pj/plugins/<name>/index.sh`, pragma-driven like scripts, with a
-delete-me how-to block at the bottom. It shows up in `pj help` and shell
-completions immediately; add `pre_hook.sh`/`post_hook.sh` beside it for
-before/after behavior.
+Plugins live in `src/module/<name>/` (shipped with pj) or
+`~/.config/pj/plugins/<name>/` (yours) and consist of a single `index.sh`
+that the dispatcher sources into the running shell — no subprocess, full
+access to framework utilities and environment. User plugins take
+precedence over core modules of the same name.
 
-Each plugin is a directory (in `src/module/<plugin>/` or `~/.config/pj/plugins/<plugin>/`) containing an `index.sh` file. The `index.sh` must define an `init()` function and call it:
+The how-to (scaffolding, header tags, hand-written example, hooks) is in
+[Adding Custom Plugins](#adding-custom-plugins). The rules that apply to
+every plugin, core or user:
 
-```sh
-init() {
-  # Plugin logic here
-}
-init "$@"
-```
-
-Plugins should:
-- Be POSIX-compliant (no bashisms).
-- Include a `help()` function for usage information.
-- Handle arguments passed to `init()`.
-
-Modules declare a `# summary: <one-liner>` tag at the top of their
-`index.sh`; it feeds `pj help` and the shell completion generator. An
-optional `# completion: <type>` tag tells the generator which operands to
-complete (see [Shell Completions](#shell-completions)), and an optional
-`# requires: <tool ...>` tag lists the extra commands the module needs —
-missing ones only warn, at install and at runtime:
-
-#### Example Plugin
-
-```sh
-#!/bin/sh
-
-help() {
-  echo "Usage: pj hello"
-  echo "Prints Hello, World!"
-}
-
-init() {
-  case "$1" in
-    help)
-      help
-      ;;
-    *)
-      echo "Hello, World!"
-      ;;
-  esac
-}
-
-init "$@"
-```
+- Be POSIX-compliant — the same file must run under dash, bash, zsh and ksh.
+- End the file with `app_start "$@"` to get the pragma-driven CLI (flags,
+  routes, `--help`, arity checks) declared in the `# @...` block. `index.sh`
+  is sourced with the module's arguments, so no wrapper function is needed.
+- Declare the header tags: `# summary:` (feeds `pj help` and completions),
+  `# completion:` (operand type), `# requires:` (extra tools — missing
+  ones only warn).
+- Fail with `panic "message" "$ERROR_..."` so errors are formatted and
+  exit codes stay consistent with core commands.
+- Reach for `pre_hook.sh`/`post_hook.sh` instead of wrapping the plugin
+  when you need before/after behavior.
 
 ### Command Lifecycle Hooks
 
@@ -438,7 +517,7 @@ PJ supports pre and post hooks for commands:
 - **Pre-hook**: Runs before the command’s `index.sh` (`pre_hook.sh`).
 - **Post-hook**: Runs after the command, even on failure (`post_hook.sh`).
 
-Hooks are stored in the module directory and receive the same arguments and environment as the command.
+Hooks are stored in the module directory and receive the same arguments and environment as the command. For any command (core or user) an extra user hook at `~/.config/pj/plugins/<name>/<hook>` runs after the core one. The pre-hook runs in the command's shell, so it can export state for the command; each post-hook runs in its own subshell, so one hook calling `exit` cannot skip the others or the module's exit status.
 
 #### Example: Auto-Refresh After Creating a Project
 
