@@ -69,12 +69,14 @@ main() {
       panic "$ERROR_MSG"
     fi
 
-    # patch the version stamp in the installed binary (portable in-place edit)
+    # patch the version stamp in the installed binary (portable in-place edit).
+    # mktemp creates mode 600 and mv preserves it, so restore +x after the swap.
     _pj_bin=$(command -v pj) || panic "$ERROR_MSG"
     _patched=$(mktemp "$FRAMEWORK_TMP/pj-update.XXXXXX")
     sed -E "s/(VERSION=.)${FRAMEWORK_VERSION}(.)/\1${next}\2/g" "$_pj_bin" > "$_patched" \
       && mv "$_patched" "$_pj_bin" \
       || { rm -f "$_patched"; panic "$ERROR_MSG"; }
+    chmod +x "$_pj_bin" 2>/dev/null || :
     success "Upgraded to $(bold "$next")"
   fi
 }

@@ -27,7 +27,8 @@ main() {
     exit 1
   fi
 
-  output_file=$(mktemp "$FRAMEWORK_TMP/pj-analyze.XXXXXX")
+  # save to the current directory like commit/document, not /tmp
+  output_file=".analysis.md"
 
   # forward pragma-parsed flags to the Bun side; positionals stay as-is
   [ -n "${OPT_FILES:-}" ] && set -- --files "$OPT_FILES" "$@"

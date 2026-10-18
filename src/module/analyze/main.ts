@@ -68,6 +68,55 @@ function globToRegex(pattern: string): RegExp {
   return new RegExp(`^${escaped}$`);
 }
 
+// Convert a gitignore-style pattern to a regex that matches anywhere in the path
+function gitignoreToRegex(pattern: string): RegExp {
+  const escaped = pattern
+    .replace(/[-[\]{}()+?.,\\^$|#\s]/g, "\\$&")
+    .replace(/\*\*/g, "\u0000")
+    .replace(/\*/g, "[^/]*")
+    .replace(/\u0000/g, ".*")
+    .replace(/\//g, "\\/");
+  return new RegExp(escaped);
+}
+
+// Sensible defaults: build/vendor dirs for Go, TypeScript/Node, and general junk
+const DEFAULT_EXCLUDES = [
+  // Node.js / TypeScript
+  "node_modules",
+  "dist",
+  "build",
+  "out",
+  "coverage",
+  "*.min.js",
+  "*.min.css",
+  "*.map",
+  // Go
+  "vendor",
+  "*.test",
+  // General
+  "__pycache__",
+  ".cache",
+  "*.log",
+  "*.tmp",
+];
+
+// Parse .gitignore in the target directory into exclude regexes
+async function parseGitignore(dir: string): Promise<RegExp[]> {
+  const gitignorePath = join(dir, ".gitignore");
+  let content: string;
+  try {
+    content = await readFile(gitignorePath, "utf8");
+  } catch {
+    return [];
+  }
+  return content
+    .split("\n")
+    .map(line => line.trim())
+    .filter(line => line && !line.startsWith("#") && !line.startsWith("!"))
+    .map(line => line.replace(/\/$/, "")) // strip trailing slash (dir-only marker)
+    .map(gitignoreToRegex);
+}
+
 // Check if file is readable, non-empty, non-binary, and not too large
 async function safeReadFile(filepath: string): Promise<string | null> {
   try {
@@ -97,7 +146,15 @@ async function collectFiles(
   const includeRegexes = includePatterns.length
     ? includePatterns.map(globToRegex)
     : [/.*/];
-  const excludeRegexes = excludePatterns.map(globToRegex);
+
+  // Combine user excludes, defaults, and .gitignore into one regex list
+  const gitignoreRegexes = await parseGitignore(dir);
+  const excludeRegexes = [
+    ...excludePatterns.map(gitignoreToRegex),
+    ...DEFAULT_EXCLUDES.map(gitignoreToRegex),
+    ...gitignoreRegexes,
+  ];
+
   const files: string[] = [];
 
   async function traverse(currentDir: string) {
@@ -107,7 +164,7 @@ async function collectFiles(
       if (entry.name.startsWith(".")) continue; // Skip hidden files
 
       if (entry.isDirectory()) {
-        if (!excludePatterns.some((p) => fullPath.includes(p))) {
+        if (!excludeRegexes.some((regex) => regex.test(fullPath))) {
           await traverse(fullPath);
         }
       } else if (
@@ -197,10 +254,11 @@ async function main() {
   }
 
   console.error(`Searching for files in: ${targetDir}`);
+  console.error("Excluding: defaults (node_modules, vendor, dist, build, ...), .gitignore");
   if (filesPattern.length)
     console.error(`File patterns: ${filesPattern.join(" ")}`);
   if (excludePattern.length)
-    console.error(`Exclude patterns: ${excludePattern.join(" ")}`);
+    console.error(`Additional excludes: ${excludePattern.join(" ")}`);
 
   const files = await collectFiles(targetDir, filesPattern, excludePattern);
   const codebaseSummary = await generateCodebaseSummary(files);
