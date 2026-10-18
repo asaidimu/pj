@@ -1,3 +1,10 @@
+# [3.1.0](https://github.com/asaidimu/pj/compare/v3.0.0...v3.1.0) (2026-10-18)
+
+
+### Features
+
+* **agent:** extract Gemini prompts into reusable templates and update model ([7f7b88c](https://github.com/asaidimu/pj/commit/7f7b88c778c7d04582dc3f2a43aead1e78495c40))
+
 # [3.0.0](https://github.com/asaidimu/pj/compare/v2.0.0...v3.0.0) (2026-10-17)
 
 
