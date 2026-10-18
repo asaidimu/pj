@@ -15,14 +15,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: setup bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      - name: install dependencies
-        run: bun run ci
-
       - name: version
         uses: cycjimmy/semantic-release-action@v8
         env:
