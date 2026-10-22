@@ -32,8 +32,8 @@ POSIX userland tools present on any Unix system (authoritative list:
 `find`, `xargs`, `sort`, `uniq`, `mktemp`, `mv`, `rm`, `cp`, `chmod`,
 `basename`, `dirname`, `printf`, `echo`, `read`
 
-**Module-specific** — each module declares the extra tools it needs with a
-`# requires:` tag. Missing ones produce a warning at install time and again
+**Module-specific** — each module declares the extra tools it needs with an
+`@requires` pragma. Missing ones produce a warning at install time and again
 when the command runs; they never block pj itself:
 
 | Module | Extra tools |
@@ -56,6 +56,16 @@ sh <(curl -fsSL https://github.com/asaidimu/pj/releases/download/latest/install.
 ```
 
 This installs PJ to your user directory without requiring root access or modifying system files. The process is idempotent, so it’s safe to run multiple times.
+
+The installer places the `pj` launcher in the first writable location that works:
+
+1. `$FRAMEWORK_BIN_DIR`, when set — pins the location for unattended installs.
+2. `~/.local/bin`, when it is (or can be created and is) on your `PATH`.
+3. The first writable directory already on your `PATH`.
+4. `~/.local/share/pj/bin`, inside the install tree — never on `PATH`, so the
+   installer offers to add it to your shell rc file (`~/.zshrc`, `~/.bashrc`,
+   or `~/.profile`; fish gets a `fish_add_path` hint). When run non-interactively
+   (`curl | sh`) it prints the `export PATH=...` line instead of prompting.
 
 ## Usage
 
@@ -92,9 +102,10 @@ pj <command> help
 ### Shell Completions
 
 PJ ships a completion generator (`src/completion/generate.sh`) that reads the
-`# summary` (and optional `# completion:`) tags from every module and plugin
-and emits tab-completion for both zsh and bash. Completions are generated and
-installed automatically by the installer:
+same `@about`, `@completion` and `@flag` pragmas every module and plugin
+already declares, and emits tab-completion for both zsh and bash — command
+descriptions, flags and the right operand kind, from one source of truth.
+Completions are generated and installed automatically by the installer:
 
 ```
 ~/.local/share/zsh/site-functions/_pj
@@ -109,7 +120,7 @@ pj completion zsh        # zsh only
 pj completion bash       # bash only
 ```
 
-`# completion:` tells the generator which operand the command accepts:
+`@completion` tells the generator which operand the command accepts:
 
 | Tag                     | What it completes              |
 |-------------------------|--------------------------------|
@@ -229,14 +240,11 @@ ready to run:
 
 ```sh
 #!/bin/sh
-# --------
-# summary: greet module
-# completion: none
-# --------
-# @about   say hello from the greet module
-# @usage   pj greet [command]
-# @route   hello  greet the world
-# @default hello
+# @about      say hello from the greet module
+# @usage      pj greet [command]
+# @completion none
+# @route      hello  greet the world
+# @default    hello
 
 hello() {
   inform "Hello from greet!"
@@ -250,34 +258,35 @@ maintain: flags, routing, `--help`, dependency checks and argument
 positionals are all derived from the `# @...` block (see
 [Pragma-driven apps](#pragma-driven-apps) for the full pragma grammar).
 
-#### Module header tags
+#### Module pragmas
 
-The block of `#` lines before the pragmas describes the module to the
-framework:
+A module is an ordinary pragma block — the same grammar as a scaffolded
+script, plus one extra tag that tells shell completions what the command
+takes as an operand:
 
 | Tag | Effect |
 |---|---|
-| `# summary: <one-liner>` | shown in `pj help` and shell completions |
-| `# completion: <type>` | operand completion: `projects`, `recipes`, `analysis`, or `none` (default) |
-| `# requires: <tool ...>` | extra tools this plugin needs — missing ones warn at install and at run time, never blocking pj |
+| `# @about <text>` | one-line description shown in `pj help` and shell completions |
+| `# @completion <type>` | operand completion: `projects`, `recipes`, `analysis`, or `none` (default) |
+| `# @requires <tool ...>` | extra tools this plugin needs — missing ones warn at install and at run time, never blocking pj |
+
+Everything else (`@flag`, `@route`, `@arg`, `@usage`, `@default`, …) is
+shared with the app layer and drives parsing and `--help`.
 
 #### Writing a plugin by hand
 
-Same shape as the scaffold: header tags, a `# @...` block declaring the
-CLI, one function per route, and `app_start` doing the parsing. `index.sh`
-is sourced (not executed), so the framework utilities are already there:
+Same shape as the scaffold: a `# @...` block declaring the CLI, one function
+per route, and `app_start` doing the parsing. `index.sh` is sourced (not
+executed), so the framework utilities are already there:
 
 ```sh
 #!/bin/sh
-# --------
-# summary: greets people
-# completion: none
-# --------
-# @about    greets people, loudly or politely
-# @usage    pj hello [greet|shout] [name]
-# @flag     -l, --loud     shout instead of greet
-# @route    greet   a polite greeting (default)
-# @route    shout   an enthusiastic greeting
+# @about       greets people, loudly or politely
+# @usage       pj hello [greet|shout] [name]
+# @completion  none
+# @flag        -l, --loud     shout instead of greet
+# @route       greet   a polite greeting (default)
+# @route       shout   an enthusiastic greeting
 
 greet() {
   name="${1:-World}"
@@ -481,6 +490,7 @@ Pragma reference:
 | `# @usage <text>` | usage line (default: `$SCRIPT_NAME [options]`) |
 | `# @version <text>` | enables `-v`/`--version` |
 | `# @requires <cmd>...` | checked before dispatch (after `--help`) |
+| `# @completion <type>` | tab-completion kind: `none`, `projects`, `recipes`, `analysis` (modules; drives shell completions) |
 | `# @flag -x, --xx=<val> <help> [=> VAR]` | flag dispatch; value flags support `--xx=v` and `--xx v`; sets `OPT_XX` (or `VAR`); booleans set it to `1` |
 | `# @route <name> <help>` | command routing; calls `name()` |
 | `# @default <name>` | route used when none is given (omit to require a command) |

@@ -1,9 +1,6 @@
-# --------
-# summary: upgrades the framework
-# requires: curl jq
-# --------
-# @about   upgrades the framework
-# @usage   pj update
+# @about        upgrades the framework
+# @usage        pj update
+# @requires     curl jq
 
 ERROR_MSG="Update failed! Check $(bold "$FRAMEWORK_LOGS") for details."
 

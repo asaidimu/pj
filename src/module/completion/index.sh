@@ -1,6 +1,3 @@
-# --------
-# summary: regenerates shell completions
-# --------
 # @about   (re)generates shell completion files from installed modules and plugins
 # @usage   pj completion [zsh|bash|all]
 # @route   zsh   install zsh completions

@@ -59,17 +59,17 @@ module_list() {
   for module in $(ls "$FRAMEWORK_ROUTE"); do
     module_init="$FRAMEWORK_ROUTE/$module/index.sh"
     [ -e "$module_init" ] || continue
-    summary=$(grep "# summary" "$module_init" | sed -e "s/^.*:[[:space:]]//g")
+    summary=$(sed -n 's/^# *@ *about  *//p' "$module_init" | head -1)
     [ -z "$summary" ] && summary="see $(bold "$FRAMEWORK_NAME $module help")"
-    printf '%s\n' "$module:$summary" | awk -F':' '{printf "    %-10s --   %s\n", $1, $2}'
+    printf '    %-10s --   %s\n' "$module" "$summary"
   done
 
   for module in $(ls "$CUSTOM_PLUGINS_PATH"); do
     module_init="$CUSTOM_PLUGINS_PATH/$module/index.sh"
     [ -e "$module_init" ] || continue
-    summary=$(grep "# summary" "$module_init" | sed -e "s/^.*:[[:space:]]//g")
+    summary=$(sed -n 's/^# *@ *about  *//p' "$module_init" | head -1)
     [ -z "$summary" ] && summary="see $(bold "$FRAMEWORK_NAME $module help")"
-    printf '%s\n' "$module:$summary" | awk -F':' '{printf "    %-10s --   %s\n", $1, $2}'
+    printf '    %-10s --   %s\n' "$module" "$summary"
   done
 
 }

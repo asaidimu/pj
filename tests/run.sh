@@ -180,11 +180,11 @@ t_new_module() {
   pj "$1" new --module greet; assert_exit 0 $? "new --module rc"
   _m="$SANDBOX/home/.config/pj/plugins/greet/index.sh"
   assert_file "$_m" "module scaffolded"
-  if grep -q "summary: greet module" "$_m"; then
+  if grep -q "say hello from the greet module" "$_m"; then
     PASS=$((PASS + 1))
   else
     FAIL=$((FAIL + 1))
-    FAILED="$FAILED    new --module: summary not substituted\n"
+    FAILED="$FAILED    new --module: about not substituted\n"
   fi
   if grep -q "__NAME__" "$_m"; then
     FAIL=$((FAIL + 1))
@@ -309,7 +309,7 @@ t_hooks() {
 
   cat > "$SANDBOX/home/.config/pj/plugins/fail/index.sh" <<'EOF'
 #!/bin/sh
-# summary: fails on purpose
+# @about fails on purpose
 main() {
   echo "state=${HOOK_STATE:-unset}"
   return 1
@@ -432,8 +432,8 @@ t_module_missing_dep_warns() {
   make_sandbox
   mkdir -p "$SANDBOX/home/.config/pj/plugins/noop"
   printf '%s\n' \
-    '# summary: noop plugin' \
-    '# requires: pj_tool_that_does_not_exist' \
+    '# @about noop plugin' \
+    '# @requires pj_tool_that_does_not_exist' \
     'init() {' \
     '  case "$1" in' \
     '    help) echo "noop help" ;;' \
@@ -450,7 +450,7 @@ t_help_user_plugin() {
   make_sandbox
   mkdir -p "$SANDBOX/home/.config/pj/plugins/foo"
   printf '%s\n' \
-    '# summary: foo plugin' \
+    '# @about foo plugin' \
     'init() {' \
     '  case "$1" in' \
     '    help) echo "foo-help-marker" ;;' \
@@ -492,12 +492,25 @@ t_completion_zsh() {
   fi
   assert_out_file "archive" "$_f" "completion zsh lists archive"
   assert_out_file "new" "$_f" "completion zsh lists new"
+  # @flag pragmas drive flag completion — commit's flags must surface
+  assert_out_file "--staged" "$_f" "completion zsh offers commit --staged"
+  assert_out_file "--type" "$_f" "completion zsh offers commit --type"
+  assert_out_file "_pj_flags_commit" "$_f" "completion zsh wires commit flags"
   if command -v zsh >/dev/null 2>&1; then
     if zsh -n "$_f" >/dev/null 2>&1; then
       PASS=$((PASS + 1))
     else
       FAIL=$((FAIL + 1))
       FAILED="$FAILED    completion zsh: generated file fails zsh -n\n"
+    fi
+    # the recipe scan must list recipes without booting the framework
+    _zsh_recipes=$(zsh -c "source '$_f'; _pj_get_recipes" 2>/dev/null)
+    if printf '%s\n' "$_zsh_recipes" | grep -qx 'base' && \
+       printf '%s\n' "$_zsh_recipes" | grep -qx 'npm'; then
+      PASS=$((PASS + 1))
+    else
+      FAIL=$((FAIL + 1))
+      FAILED="$FAILED    completion zsh: recipe scan missing base/npm (got: $_zsh_recipes)\n"
     fi
   fi
 }
@@ -514,12 +527,24 @@ t_completion_bash() {
   fi
   assert_out_file "archive" "$_f" "completion bash lists archive"
   assert_out_file "new" "$_f" "completion bash lists new"
+  # @flag pragmas drive flag completion — commit's flags must surface
+  assert_out_file "--staged" "$_f" "completion bash offers commit --staged"
+  assert_out_file "--names" "$_f" "completion bash offers new --names"
   if command -v bash >/dev/null 2>&1; then
     if bash -n "$_f" >/dev/null 2>&1; then
       PASS=$((PASS + 1))
     else
       FAIL=$((FAIL + 1))
       FAILED="$FAILED    completion bash: generated file fails bash -n\n"
+    fi
+    # the recipe scan must list recipes without booting the framework
+    _bash_recipes=$(bash -c "COMP_WORDS=(pj new ''); COMP_CWORD=2; source '$_f'; _pj; printf '%s\n' \"\${COMPREPLY[@]}\"" 2>/dev/null)
+    if printf '%s\n' "$_bash_recipes" | grep -qx 'base' && \
+       printf '%s\n' "$_bash_recipes" | grep -qx 'npm'; then
+      PASS=$((PASS + 1))
+    else
+      FAIL=$((FAIL + 1))
+      FAILED="$FAILED    completion bash: recipe scan missing base/npm (got: $_bash_recipes)\n"
     fi
   fi
 }
@@ -530,9 +555,7 @@ t_completion_all_modules() {
   mkdir -p "$SANDBOX/home/.config/pj/plugins/colon"
   cat > "$SANDBOX/home/.config/pj/plugins/colon/index.sh" <<'EOF'
 #!/bin/sh
-# --------
-# summary: fixes: things with colons
-# --------
+# @about fixes: things with colons
 EOF
   _zsh_out=$(
     HOME="$SANDBOX/home" \
@@ -660,6 +683,159 @@ EOF
       FAILED="$FAILED    $m/index.sh: does not use agent_run\n"
     fi
   done
+}
+
+# installer bin-dir picker + rc prompt: the launcher goes to a writable
+# directory (preferring one already on PATH), and a missing PATH entry is
+# fixed in the shell rc (TTY) or reported (non-interactive)
+t_installer_bin_dir() {
+  make_sandbox
+  _pick="$SANDBOX/pick.sh"
+  # extract the picker helpers from the installer template
+  sed -n \
+    -e '/^_path_contains()/,/^}/p' \
+    -e '/^_pick_bin_dir()/,/^}/p' \
+    -e '/^_rc_file()/,/^}/p' \
+    -e '/^_ensure_path()/,/^}/p' \
+    "$REPO_ROOT/assets/installer.sh" > "$_pick"
+
+  if grep -q '_path_contains()' "$_pick" && grep -q '_pick_bin_dir()' "$_pick" &&
+     grep -q '_rc_file()' "$_pick" && grep -q '_ensure_path()' "$_pick"; then
+    PASS=$((PASS + 1))
+  else
+    FAIL=$((FAIL + 1))
+    FAILED="$FAILED    installer: could not extract picker helpers from assets/installer.sh\n"
+    return
+  fi
+
+  # _path_contains: colon-joined PATH hit/miss
+  # (absolute shell path: the PATH overrides below hide `sh` itself)
+  _SH=$(command -v sh)
+  got=$(PATH="/foo:/bar" "$_SH" -c '. "$1"; _path_contains /foo && echo hit || echo miss' sh "$_pick")
+  if [ "$got" = "hit" ]; then PASS=$((PASS + 1)); else FAIL=$((FAIL + 1)); FAILED="$FAILED    _path_contains: /foo in /foo:/bar should hit (got $got)\n"; fi
+  got=$(PATH="/foo:/bar" "$_SH" -c '. "$1"; _path_contains /baz && echo hit || echo miss' sh "$_pick")
+  if [ "$got" = "miss" ]; then PASS=$((PASS + 1)); else FAIL=$((FAIL + 1)); FAILED="$FAILED    _path_contains: /baz in /foo:/bar should miss (got $got)\n"; fi
+
+  # FRAMEWORK_BIN_DIR pins the location, even off PATH
+  got=$(HOME="$SANDBOX/home" PATH="/nonexistent" FRAMEWORK_BIN_DIR="/pinned/bin" \
+        "$_SH" -c '. "$1"; _pick_bin_dir' sh "$_pick")
+  if [ "$got" = "/pinned/bin" ]; then PASS=$((PASS + 1)); else FAIL=$((FAIL + 1)); FAILED="$FAILED    _pick_bin_dir: FRAMEWORK_BIN_DIR pin should win (got $got)\n"; fi
+
+  # ~/.local/bin wins when it is on PATH (and can be created)
+  mkdir -p "$SANDBOX/home/.local/bin" "$SANDBOX/altpath"
+  got=$(HOME="$SANDBOX/home" PATH="$SANDBOX/home/.local/bin:$SANDBOX/altpath" \
+        "$_SH" -c '. "$1"; _pick_bin_dir' sh "$_pick")
+  if [ "$got" = "$SANDBOX/home/.local/bin" ]; then PASS=$((PASS + 1)); else FAIL=$((FAIL + 1)); FAILED="$FAILED    _pick_bin_dir: ~/.local/bin on PATH should be preferred (got $got)\n"; fi
+
+  # otherwise the first writable directory already on PATH
+  got=$(HOME="$SANDBOX/home" PATH="$SANDBOX/altpath:/nonexistent" \
+        "$_SH" -c '. "$1"; _pick_bin_dir' sh "$_pick")
+  if [ "$got" = "$SANDBOX/altpath" ]; then PASS=$((PASS + 1)); else FAIL=$((FAIL + 1)); FAILED="$FAILED    _pick_bin_dir: first writable PATH dir should win (got $got)\n"; fi
+
+  # nothing writable on PATH: fall back inside the install tree
+  got=$(HOME="$SANDBOX/home" PATH="/nonexistent1:/nonexistent2" FRAMEWORK_PATH="$SANDBOX/fwk" \
+        "$_SH" -c '. "$1"; _pick_bin_dir' sh "$_pick")
+  if [ "$got" = "$SANDBOX/fwk/bin" ]; then PASS=$((PASS + 1)); else FAIL=$((FAIL + 1)); FAILED="$FAILED    _pick_bin_dir: fallback should be \$FRAMEWORK_PATH/bin (got $got)\n"; fi
+
+  # _rc_file maps SHELL to the right rc file
+  for _rcs in "zsh:$SANDBOX/home/.zshrc" "bash:$SANDBOX/home/.bashrc" \
+              "fish:$SANDBOX/home/.config/fish/config.fish" "sh:$SANDBOX/home/.profile"; do
+    _rcshell=${_rcs%%:*}; _rcwant=${_rcs#*:}
+    got=$(HOME="$SANDBOX/home" SHELL="/bin/$_rcshell" "$_SH" -c '. "$1"; _rc_file' sh "$_pick")
+    if [ "$got" = "$_rcwant" ]; then PASS=$((PASS + 1)); else FAIL=$((FAIL + 1)); FAILED="$FAILED    _rc_file: SHELL=/bin/$_rcshell should map to $_rcwant (got $got)\n"; fi
+  done
+
+  # _ensure_path harness: stub the io-lib printers so the extracted
+  # helpers run without the build-bundled library
+  cat > "$SANDBOX/ensure.sh" <<'EOF'
+. "$INSTALLER_HELPERS"
+warn() { printf 'WARN:%s\n' "$*"; }
+inform() { printf 'INFO:%s\n' "$*"; }
+success() { printf 'OK:%s\n' "$*"; }
+question() { read -r _a; printf '%s\n' "${_a:-$2}"; }
+_ensure_path "$1"
+EOF
+
+  # already on PATH: silent no-op
+  INSTALLER_HELPERS="$_pick" HOME="$SANDBOX/home" SHELL=/bin/bash PATH="/usr/bin:/bin" \
+    sh "$SANDBOX/ensure.sh" /usr/bin >"$SANDBOX/out" 2>"$SANDBOX/err" < /dev/null
+  if [ $? -eq 0 ] && [ ! -s "$SANDBOX/out" ]; then
+    PASS=$((PASS + 1))
+  else
+    FAIL=$((FAIL + 1)); FAILED="$FAILED    _ensure_path: dir already on PATH should be a silent no-op\n"
+  fi
+
+  # non-interactive (curl | sh): prints the export line, never blocks
+  INSTALLER_HELPERS="$_pick" HOME="$SANDBOX/home" SHELL=/bin/bash PATH="/usr/bin:/bin" \
+    sh "$SANDBOX/ensure.sh" "$SANDBOX/extra" >"$SANDBOX/out" 2>"$SANDBOX/err" < /dev/null
+  if [ $? -eq 0 ] && grep -q "not on your PATH" "$SANDBOX/out" && grep -q "export PATH" "$SANDBOX/out"; then
+    PASS=$((PASS + 1))
+  else
+    FAIL=$((FAIL + 1)); FAILED="$FAILED    _ensure_path: non-interactive should print the export line\n"
+  fi
+
+  # fish gets its own hint (export PATH=... is not valid fish syntax)
+  INSTALLER_HELPERS="$_pick" HOME="$SANDBOX/home" SHELL=/bin/fish PATH="/usr/bin:/bin" \
+    sh "$SANDBOX/ensure.sh" "$SANDBOX/extra" >"$SANDBOX/out" 2>"$SANDBOX/err" < /dev/null
+  if grep -q "fish_add_path" "$SANDBOX/out"; then
+    PASS=$((PASS + 1))
+  else
+    FAIL=$((FAIL + 1)); FAILED="$FAILED    _ensure_path: fish shell should get a fish_add_path hint\n"
+  fi
+
+  # interactive: answering y appends the marked block to the rc file
+  if command -v script >/dev/null 2>&1; then
+    (
+      export INSTALLER_HELPERS="$_pick" HOME="$SANDBOX/home" SHELL=/bin/bash
+      # $SANDBOX/extra is never on PATH, so the prompt is reachable
+      printf 'y\n' | script -qec "sh $SANDBOX/ensure.sh $SANDBOX/extra" /dev/null >/dev/null 2>&1
+    )
+    if grep -qF "$SANDBOX/extra" "$SANDBOX/home/.bashrc" 2>/dev/null &&
+       grep -q 'export PATH=' "$SANDBOX/home/.bashrc" 2>/dev/null; then
+      PASS=$((PASS + 1))
+    else
+      FAIL=$((FAIL + 1)); FAILED="$FAILED    _ensure_path pty: answering y should append export PATH to ~/.bashrc\n"
+    fi
+  fi
+}
+
+# the generated install.sh bundles the io library (one banner, one load,
+# one panic) and keeps the picker — plus a syntax check on the artifact
+t_installer_build() {
+  make_sandbox
+  command -v tar >/dev/null 2>&1 || return 0
+  command -v base64 >/dev/null 2>&1 || return 0
+
+  if (cd "$REPO_ROOT" && sh bin/build.sh) >/dev/null 2>&1; then
+    PASS=$((PASS + 1))
+  else
+    FAIL=$((FAIL + 1)); FAILED="$FAILED    bin/build.sh: build failed\n"
+    return
+  fi
+  _inst="$REPO_ROOT/install.sh"
+  assert_file "$_inst" "build produces install.sh"
+
+  if sh -n "$_inst" 2>/dev/null; then
+    PASS=$((PASS + 1))
+  else
+    FAIL=$((FAIL + 1)); FAILED="$FAILED    install.sh: sh -n syntax check failed\n"
+  fi
+
+  if grep -q 'bundled io library' "$_inst" && grep -q '^banner()' "$_inst" &&
+     grep -q '_pick_bin_dir()' "$_inst" && grep -q '_ensure_path()' "$_inst"; then
+    PASS=$((PASS + 1))
+  else
+    FAIL=$((FAIL + 1)); FAILED="$FAILED    install.sh: missing bundled io library or picker helpers\n"
+  fi
+
+  # the old hand-copied UI helpers are gone — one copy in the bundle
+  if ! grep -q '^_banner()' "$_inst" && ! grep -q '^_load()' "$_inst"; then
+    PASS=$((PASS + 1))
+  else
+    FAIL=$((FAIL + 1)); FAILED="$FAILED    install.sh: still defines duplicated _banner/_load helpers\n"
+  fi
+
+  rm -f "$_inst"
 }
 
 # ---- app layer (pragma reflection) ------------------------------------------
@@ -1009,7 +1185,7 @@ t_module_missing_dep_warns t_help_user_plugin t_help_self t_hooks \
 t_app_help t_app_flags t_app_routes t_app_requires t_app_args t_app_passthrough \
 t_new_script t_new_module t_env_list t_env_check t_env_check_broken \
 t_completion_zsh t_completion_bash t_completion_all_modules t_agent_prompts \
-t_agent_utils"
+t_agent_utils t_installer_bin_dir t_installer_build"
 
 # ---- runner -----------------------------------------------------------------
 

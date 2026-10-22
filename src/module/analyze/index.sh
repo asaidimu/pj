@@ -1,15 +1,11 @@
 #!/bin/sh
-# --------
-# summary: analyze codebase
-# completion: analysis
-# requires: bun
-# --------
-# @about   analyze a codebase with Google Gemini
-# @usage   pj analyze [directory]
-# @flag    -f, --files=<pattern>    glob patterns to include
-# @flag    -x, --exclude=<pattern>  files or directories to exclude
-# @requires bun
-# @arg     [<directory>]            path to the codebase (default: current directory)
+# @about        analyze a codebase with Google Gemini
+# @usage        pj analyze [directory]
+# @completion   analysis
+# @flag         -f, --files=<pattern>    glob patterns to include
+# @flag         -x, --exclude=<pattern>  files or directories to exclude
+# @requires     bun
+# @arg          [<directory>]            path to the codebase (default: current directory)
 
 PLUGIN_DIR="$FRAMEWORK_ROUTE/analyze"
 

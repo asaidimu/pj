@@ -1,11 +1,8 @@
-# --------
-# summary: __NAME__ module
-# completion: none
-# --------
-# @about   say hello from the __NAME__ module
-# @usage   pj __NAME__ [command]
-# @route   hello  greet the world
-# @default hello
+# @about      say hello from the __NAME__ module
+# @usage      pj __NAME__ [command]
+# @completion none
+# @route      hello  greet the world
+# @default    hello
 
 hello() {
   inform "Hello from __NAME__!"
@@ -15,10 +12,12 @@ app_start "$@"
 # ----------------------------------------------------------------------------
 # How this module works (delete this block once you've edited the file):
 #
-# 1. The "# summary:" line is shown by `pj help` and shell completions.
-# 2. The "# @..." pragmas declare the CLI — `pj __NAME__ help` renders
-#    them. Same grammar as `pj new --script` (see that template's docs).
-# 3. Optional hooks: drop pre_hook.sh / post_hook.sh next to this file;
+# 1. The "@about" line is shown by `pj help` and shell completions.
+# 2. The "@completion" line picks the tab-completion kind: none, projects,
+#    recipes or analysis.
+# 3. The "@..." pragmas declare the CLI — `pj __NAME__ help` renders them.
+#    Same grammar as `pj new --script` (see that template's docs).
+# 4. Optional hooks: drop pre_hook.sh / post_hook.sh next to this file;
 #    they run before/after every `pj __NAME__` invocation.
-# 4. Try it:  pj __NAME__
+# 5. Try it:  pj __NAME__
 # ----------------------------------------------------------------------------

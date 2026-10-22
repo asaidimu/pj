@@ -1,11 +1,7 @@
-# --------
-# command: delete
-# summary: deletes a project, use with caution !
-# completion: projects
-# --------
-# @about   delete a project folder, use with caution !
-# @usage   pj delete <project-name>
-# @arg     <project-name>  project to delete
+# @about        delete a project folder, use with caution !
+# @usage        pj delete <project-name>
+# @completion   projects
+# @arg          <project-name>  project to delete
 
 rm_project() {
   project="$PROJECT_PATH"

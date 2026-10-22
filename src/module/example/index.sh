@@ -1,6 +1,3 @@
-# --------
-# summary: example module
-# --------
 # @about   says hello world
 # @usage   pj example
 

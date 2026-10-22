@@ -1,12 +1,9 @@
 #!/bin/sh
-# --------
-# summary: open a project in a tmux session
-# requires: tmux fzf tree
-# --------
-# @about   open a project in a tmux session (fuzzy selection)
-# @usage   pj open [refresh]
-# @route   refresh  (re)generate the project list
-# @default main
+# @about        open a project in a tmux session (fuzzy selection)
+# @usage        pj open [refresh]
+# @requires     tmux fzf tree
+# @route        refresh  (re)generate the project list
+# @default      main
 
 # use fzf to list and select a session target
 _select_target() {

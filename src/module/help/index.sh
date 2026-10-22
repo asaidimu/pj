@@ -1,7 +1,4 @@
 #!/bin/sh
-# --------
-# summary: show help message
-# --------
 # @about   show help message
 # @usage   pj help [command]
 # @flag    -x, --extended  show extended framework info (authorship, license, paths)

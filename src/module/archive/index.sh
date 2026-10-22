@@ -1,11 +1,8 @@
-# --------
-# summary: archives a project
-# completion: projects
-# requires: tar
-# --------
-# @about   compress a project folder and save it to the archive directory
-# @usage   pj archive <project-name>
-# @arg     <project-name>  project to archive
+# @about        compress a project folder and save it to the archive directory
+# @usage        pj archive <project-name>
+# @completion   projects
+# @requires     tar
+# @arg          <project-name>  project to archive
 
 archive_project() {
   [ -d "$ARCHIVE_PATH" ] || mkdir -p "$ARCHIVE_PATH"

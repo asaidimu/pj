@@ -2,8 +2,8 @@ export FRAMEWORK_REQUIRED_DEPS="sh mkdir ls cat date sed awk grep tr wc sleep fi
 
 module_requires() (
   [ -f "$1" ] || exit 0
-  awk 'tolower($0) ~ /^#[ \t]*requires[ \t]*:/ {
-         sub(/^[^:]*:[ \t]*/, "")
+  awk '/^#[ \t]*@[ \t]*requires[ \t]/ {
+         sub(/^#[ \t]*@[ \t]*requires[ \t]+/, "")
          print
          exit
        }' "$1"

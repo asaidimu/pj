@@ -11,6 +11,7 @@
 #   # @usage      <text>            usage line (default: $SCRIPT_NAME [options])
 #   # @version    <text>            enables -v/--version
 #   # @requires   <cmd>...          checked before dispatch (after --help)
+#   # @completion <type>            tab-completion kind: none|projects|recipes|analysis
 #   # @flag       -x, --xx=<val>    help text  [=> VAR]   sets OPT_XX (or VAR)
 #   # @route      <name>            help text             calls <name>()
 #   # @default    <name>            route used when none given
@@ -126,6 +127,7 @@ app_reflect(){
   APP_USAGE=""
   APP_VERSION=""
   APP_REQUIRES=""
+  APP_COMPLETION=""
   APP_DEFAULT_ROUTE=""
   APP_ROUTES=""
   APP_FLAGS=""
@@ -137,14 +139,15 @@ app_reflect(){
   while read -r _key _rest || [ -n "${_key:-}" ]; do
     [ -n "${_key:-}" ] || continue
     case "$_key" in
-      about)    APP_ABOUT="$_rest";;
-      usage)    APP_USAGE="$_rest";;
-      version)  APP_VERSION="$_rest";;
-      requires) APP_REQUIRES="$_rest";;
-      default)  app_trim "$_rest"; APP_DEFAULT_ROUTE="$APP_TRIMMED";;
-      flag)     app_decl_flag "$_rest";;
-      route)    app_decl_route "$_rest";;
-      arg)      app_decl_arg "$_rest";;
+      about)      APP_ABOUT="$_rest";;
+      usage)      APP_USAGE="$_rest";;
+      version)    APP_VERSION="$_rest";;
+      requires)   APP_REQUIRES="$_rest";;
+      completion) APP_COMPLETION="$_rest";;
+      default)    app_trim "$_rest"; APP_DEFAULT_ROUTE="$APP_TRIMMED";;
+      flag)       app_decl_flag "$_rest";;
+      route)      app_decl_route "$_rest";;
+      arg)        app_decl_arg "$_rest";;
       *) panic "pragma error in $APP_REFLECT_SRC: unknown key '$_key'";;
     esac
   done <<EOF

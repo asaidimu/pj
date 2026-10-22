@@ -1,4 +1,10 @@
-#!/usr/bin/env bash
+#!/usr/bin/env sh
+
+# NOTE: this is a template. bin/build.sh appends the bundled io library
+# (src/utils/{colors,io}.sh), the SOURCE tarball, and the _main call.
+# The installer runs before pj exists, so it carries its own copy of the
+# framework UI — generated from the same source on every build, which is
+# what keeps the two in sync.
 
 FRAMEWORK_NAME="pj"
 FRAMEWORK_BRANCH="main"
@@ -6,21 +12,127 @@ FRAMEWORK_VERSION="{{version}}"
 FRAMEWORK_URL="{{url}}"
 
 FRAMEWORK_PATH="$HOME/.local/share/$FRAMEWORK_NAME"
-FRAMEWORK_BINARY="$HOME/.local/bin/$FRAMEWORK_NAME"
 
-# POSIX sleep(1) takes integer seconds only; sub-second delays are a
-# widely available extension. Skip them silently when unsupported.
-_sleep_frac() {
-    sleep "$1" 2>/dev/null || :
+# -- where the launcher lives -------------------------------------------------
+
+# does colon-joined PATH already contain this directory?
+_path_contains() {
+    case ":$PATH:" in
+        *":$1:"*) return 0 ;;
+        *) return 1 ;;
+    esac
 }
 
+# pick the directory for the pj launcher:
+#   1. $FRAMEWORK_BIN_DIR, when set (unattended installs pin this)
+#   2. $HOME/.local/bin, when it is (or can be created and is) on PATH
+#   3. the first writable directory already on PATH
+#   4. $FRAMEWORK_PATH/bin — inside the install tree; never on PATH, so
+#      _ensure_path offers to add it to the shell rc afterwards
+_pick_bin_dir() {
+    if [ -n "${FRAMEWORK_BIN_DIR:-}" ]; then
+        printf '%s\n' "$FRAMEWORK_BIN_DIR"
+        return 0
+    fi
+
+    case ":$PATH:" in
+        *":$HOME/.local/bin:"*)
+            mkdir -p "$HOME/.local/bin" 2>/dev/null
+            if [ -d "$HOME/.local/bin" ] && [ -w "$HOME/.local/bin" ]; then
+                printf '%s\n' "$HOME/.local/bin"
+                return 0
+            fi
+            ;;
+    esac
+
+    _pb_old_ifs=$IFS
+    IFS=:
+    for _pb_dir in $PATH; do
+        [ -n "$_pb_dir" ] || continue
+        if [ -d "$_pb_dir" ] && [ -w "$_pb_dir" ]; then
+            IFS=$_pb_old_ifs
+            printf '%s\n' "$_pb_dir"
+            return 0
+        fi
+    done
+    IFS=$_pb_old_ifs
+
+    printf '%s\n' "$FRAMEWORK_PATH/bin"
+}
+
+# the rc file for the user's login shell
+_rc_file() {
+    case "${SHELL:-}" in
+        */zsh)  printf '%s\n' "$HOME/.zshrc" ;;
+        */bash) printf '%s\n' "$HOME/.bashrc" ;;
+        */fish) printf '%s\n' "$HOME/.config/fish/config.fish" ;;
+        *)      printf '%s\n' "$HOME/.profile" ;;
+    esac
+}
+
+# after install: if the launcher dir is not on PATH, offer to fix the rc
+# file (TTY) or print the line to add (non-interactive, e.g. curl | sh)
+_ensure_path() {
+    _ep_bin="$1"
+    _path_contains "$_ep_bin" && return 0
+
+    _ep_rc="$(_rc_file)"
+
+    # fish does not understand export PATH=...; give it its own hint
+    case "${SHELL:-}" in
+        */fish)
+            warn "$_ep_bin is not on your PATH"
+            inform "enable it with:  fish_add_path $_ep_bin"
+            return 0
+            ;;
+    esac
+
+    # stdin is a pipe (curl | sh): never block, just print the instruction
+    if [ ! -t 0 ]; then
+        warn "$_ep_bin is not on your PATH"
+        inform "add it with:  export PATH=\"$_ep_bin:\$PATH\"   (in $_ep_rc)"
+        return 0
+    fi
+
+    _ep_answer="$(question "$_ep_bin is not on your PATH — add it to $_ep_rc" "y/N")"
+    case "$_ep_answer" in
+        y|Y|yes|YES)
+            if [ -f "$_ep_rc" ] && grep -qF "$_ep_bin" "$_ep_rc"; then
+                inform "$_ep_rc already references $_ep_bin"
+                return 0
+            fi
+            # keep $HOME literal so the line survives moving the home dir
+            _ep_entry="$_ep_bin"
+            case "$_ep_bin" in
+                "$HOME"/*) _ep_entry="\$HOME${_ep_bin#"$HOME"}" ;;
+            esac
+            {
+                printf '\n# pj: added by the installer\n'
+                printf 'export PATH="%s:$PATH"\n' "$_ep_entry"
+            } >> "$_ep_rc"
+            success "added $_ep_bin to $_ep_rc — open a new shell or run: . $_ep_rc"
+            ;;
+        *)
+            inform "skipped — run the launcher directly: $_ep_bin/pj"
+            ;;
+    esac
+}
+
+# -- install steps ------------------------------------------------------------
+
 _clean(){
-    _sleep_frac 0.2
+    sleep_frac 0.2
     if [ -d "$FRAMEWORK_PATH" ]; then
         rm -rf "$FRAMEWORK_PATH"
     fi
-    if [ -e "$FRAMEWORK_BINARY" ]; then
-        rm -rf "$FRAMEWORK_BINARY"
+    # launchers from this and earlier installs — the location can move
+    # between versions (e.g. a new writable PATH dir), so clear them all
+    if [ -e "$HOME/.local/bin/$FRAMEWORK_NAME" ]; then
+        rm -f "$HOME/.local/bin/$FRAMEWORK_NAME"
+    fi
+    if [ -n "${FRAMEWORK_BINARY:-}" ] && [ -e "$FRAMEWORK_BINARY" ] &&
+       [ "$FRAMEWORK_BINARY" != "$HOME/.local/bin/$FRAMEWORK_NAME" ]; then
+        rm -f "$FRAMEWORK_BINARY"
     fi
 }
 
@@ -41,7 +153,7 @@ _check_extractor() {
     local _tool
     for _tool in tar base64 mktemp; do
         if ! command -v "$_tool" >/dev/null 2>&1; then
-            _error "missing tool required to install: ${_tool}"
+            error "missing tool required to install: ${_tool}"
             return 1
         fi
     done
@@ -52,7 +164,7 @@ _check_dependencies() {
     local _deps="$FRAMEWORK_PATH/src/utils/deps.sh"
 
     if [ ! -f "$_deps" ]; then
-        _error "dependency manifest not found: ${_deps}"
+        error "dependency manifest not found: ${_deps}"
         return 1
     fi
     . "$_deps"
@@ -60,8 +172,8 @@ _check_dependencies() {
     local _missing
     _missing=$(missing_required)
     if [ -n "$_missing" ]; then
-        _error "missing required tools: ${_missing}"
-        _alert "install them and run this installer again"
+        error "missing required tools: ${_missing}"
+        warn "install them and run this installer again"
         return 1
     fi
 
@@ -85,7 +197,7 @@ _check_dependencies() {
 }
 
 _install_script() {
-    _sleep_frac 0.2
+    sleep_frac 0.2
     mkdir -p "$(dirname "$FRAMEWORK_BINARY")"
 cat > "$FRAMEWORK_BINARY" << EOF
 #!/usr/bin/env sh
@@ -146,22 +258,27 @@ _install_completion() {
 }
 
 _main(){
-    _banner
+    banner
+    inform "pj${FRAMEWORK_VERSION:+ $FRAMEWORK_VERSION} — $FRAMEWORK_URL"
 
     # -- check the installer's own tools before touching anything --
     _check_extractor || _abort
 
+    # choose the launcher location before cleaning (clean removes the
+    # previous copy, wherever it lived)
+    FRAMEWORK_BINARY="$(_pick_bin_dir)/$FRAMEWORK_NAME"
+
     # -- clean up --
     _clean &
     pid=$!
-    _load "Cleaning previous installations" "Artifacts removed" $pid
+    load "Cleaning previous installations" "Artifacts removed" $pid
     wait $pid
     [ $? -ne 0 ] && _abort
 
     # -- extract --
     _extract &
     pid=$!
-    _load "Extracting files" "Files extracted" $pid
+    load "Extracting files" "Files extracted" $pid
     wait $pid
     [ $? -ne 0 ] && _abort
 
@@ -171,183 +288,36 @@ _main(){
     # -- add command to path --
     _install_script &
     pid=$!
-    _load "Installing script" "Script installed at $(blue "$FRAMEWORK_BINARY")" $pid
+    load "Installing launcher" "Launcher installed at $FRAMEWORK_BINARY" $pid
     wait $pid
     [ $? -ne 0 ] && _abort
 
     # -- install completion --
     _install_completion &
     pid=$!
-    _load "Installing completions" "Shell completions installed" $pid
+    load "Installing completions" "Shell completions installed" $pid
     wait $pid
 
     # -- install the standalone io library --
     _install_lib &
     pid=$!
-    _load "Installing io library" "Library available at $(blue "$FRAMEWORK_PATH/lib/io.sh")" $pid
+    load "Installing io library" "Library available at $FRAMEWORK_PATH/lib/io.sh" $pid
     wait $pid
     [ $? -ne 0 ] && _abort
 
-    _log "Installed  $(bold $(blue "$FRAMEWORK_NAME-$FRAMEWORK_VERSION"))"
-    _log "Run ${FRAMEWORK_NAME} to get started."
-    _log "Happy Coding!"
-}
+    # -- make sure the launcher is reachable --
+    _ensure_path "$(dirname "$FRAMEWORK_BINARY")"
 
-# ---------------------------------------------------------------------------- #
-
-_repl() {
-    local char="$1"
-    local count="$2"
-    local result=""
-    local i=0
-    while [ $i -lt $count ]; do
-        result="${result}${char}"
-        i=$((i + 1))
-    done
-    printf "%s" "$result"
-}
-
-_label(){
-  color="$1"
-  level="$2"
-  size=$(printf '%s' "$level" | wc -m)
-  size=$((6 - size))
-  printf '%s ' "$($color "$(_repl " " $size)${level} │")"
-}
-
-_log(){
-  _label bold_green "LOG"
-  printf '%s\n' "$*"
-}
-_alert() {
-  _label bold_yellow "ALERT"
-  printf '%s\n' "$*"
-}
-_error(){
-  _label bold_red "ERROR"
-  printf '%s\n' "$*"
-}
-_trace(){
-  _label bold_cyan "TRACE"
-  printf '%s' "$*"
-}
-_debug(){
-  _label bold_blue "DEBUG"
-  printf '%s\n' "$*"
+    printf '\n'
+    success "pj${FRAMEWORK_VERSION:+ $FRAMEWORK_VERSION} installed"
+    inform "launcher   $FRAMEWORK_BINARY"
+    inform "framework  $FRAMEWORK_PATH"
+    inform "io library $FRAMEWORK_PATH/lib/io.sh"
+    printf '\n'
+    inform "run $(bold "$FRAMEWORK_NAME") to get started — $(bold "$FRAMEWORK_NAME help") for usage"
+    printf '\n'
 }
 
 _abort(){
-    printf '%s\n' "$(red "[") Install failed ! $(red "]")"
-    exit 27
+    panic "Install failed!" 27
 }
-
-bold_blue(){
-  printf '\033[1;34;48m%s\033[0m' "$*";
-}
-bold_cyan(){
-  printf '\033[1;36;48m%s\033[0m' "$*";
-}
-bold_green(){
-  printf '\033[1;32;48m%s\033[0m' "$*";
-}
-bold_grey(){
-  printf '\033[1;30;48m%s\033[0m' "$*";
-}
-bold_red(){
-  printf '\033[1;31;48m%s\033[0m' "$*";
-}
-bold_yellow(){
-  printf '\033[1;33;48m%s\033[0m' "$*";
-}
-
-bold(){
-  printf '\033[1;37;48m%s\033[0m' "$*";
-}
-
-red(){
-  printf '\033[1;31;48m%s\033[0m' "$*";
-}
-
-blue(){
-  printf '\033[0;34;48m%s\033[0m' "$*";
-}
-cyan(){
-  printf '\033[0;36;48m%s\033[0m' "$*";
-}
-yellow(){
-  printf '\033[1;33;48m%s\033[0m' "$*";
-}
-
-green(){
-  printf '\033[1;32;48m%s\033[0m' "$*";
-}
-
-_clear_line(){
-    printf "\033[1000D" # go to begining of line
-    printf "\033[0K" # clear line
-}
-
-_load() {
-    text="$1"
-    msg="$2"
-    pid="$3"
-
-    text="$(_trace "${text}")"
-    a="${text}    "
-    b="${text} .  "
-    c="${text} .. "
-    d="${text} ..."
-
-    waiting=1
-    while [ $waiting -eq 1 ]; do
-        printf '%s' "$a"
-        _sleep_frac 0.3
-        _clear_line
-
-        printf '%s' "$b"
-        _sleep_frac 0.3
-        _clear_line
-
-        printf '%s' "$c"
-        _sleep_frac 0.3
-        _clear_line
-
-        printf '%s' "$d"
-
-        if ! kill -0 "$pid" 2>/dev/null; then
-            waiting=0
-        fi
-        _sleep_frac 0.3
-        _clear_line
-    done
-    _log "$msg"
-}
-
-# NOTE: the banner artwork is duplicated in src/utils/io.sh (the framework's
-# banner()). Keep the two in sync. This installer is intentionally
-# self-contained because it runs before pj is installed.
-_banner(){
-    duration=0.03
-    printf "\n" && _sleep_frac $duration
-    printf "\n" && _sleep_frac $duration
-    yellow '          ,ggggggggggg,'        && printf '\n' && _sleep_frac $duration
-    yellow '          dP"""88""""""Y8,'     && printf '\n' && _sleep_frac $duration
-    yellow '          Yb,  88      `8b '    && printf '\n' && _sleep_frac $duration
-    yellow '           `"  88      ,8P  ' && blue 'ggggg,'  && printf '\n' && _sleep_frac $duration
-    yellow '               88aaaad8P"   ' && blue 'dP"  Y8,'  && printf '\n' && _sleep_frac $duration
-    yellow '               88"""""      ' && blue 'Yb,  gg,'  && printf '\n' && _sleep_frac $duration
-    yellow '               88           ' && blue ' `"  8I,'  && printf '\n' && _sleep_frac $duration
-    yellow '               88           ' && blue '    ,8I,'  && printf '\n' && _sleep_frac $duration
-    yellow '               88           ' && blue '  _,d8I,'  && printf '\n' && _sleep_frac $duration
-    yellow '               88           ' && blue '888P"888,' && printf '\n' && _sleep_frac $duration
-    yellow '                            ' && blue '   ,d8I,'  && printf '\n' && _sleep_frac $duration
-    yellow "                            " && blue " ,dP'8I,"  && printf '\n' && _sleep_frac $duration
-    yellow '                            ' && blue ',8"  8I,'  && printf '\n' && _sleep_frac $duration
-    yellow '                            ' && blue 'I8   8I,'  && printf '\n' && _sleep_frac $duration
-    yellow '                            ' && blue '`8, ,8I,'  && printf '\n' && _sleep_frac $duration
-    yellow '                            ' && blue ' `Y8P,'    && printf '\n' && _sleep_frac $duration
-    printf "\n"
-    printf "\n"
-}
-
-# ---------------------------------------------------------------------------- #

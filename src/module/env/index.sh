@@ -1,9 +1,6 @@
-# --------
-# summary: inspect and verify framework environment variables
-# completion: none
-# --------
-# @about   inspect and verify framework environment variables
-# @usage   pj env [check]
+# @about        inspect and verify framework environment variables
+# @usage        pj env [check]
+# @completion   none
 # @route   list   list variables with values and descriptions
 # @route   check  verify all variables (exit code = issue count)
 # @default list

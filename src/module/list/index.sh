@@ -1,6 +1,3 @@
-# --------
-# summary: list active projects
-# --------
 # @about   list active projects
 # @usage   pj list [<project-name>]
 # @arg     [<project-name>]  validate a single project directory

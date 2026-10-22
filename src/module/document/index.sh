@@ -1,15 +1,11 @@
 #!/bin/sh
-# --------
-# summary: generate a standard project README
-# completion: analysis
-# requires: bun
-# --------
-# @about   generate a standard project README with Google Gemini
-# @usage   pj document [directory]
-# @flag    -f, --files=<pattern>    glob patterns to include
-# @flag    -x, --exclude=<pattern>  files or directories to exclude
-# @requires bun
-# @arg     [<directory>]            path to the codebase (default: current directory)
+# @about        generate a standard project README with Google Gemini
+# @usage        pj document [directory]
+# @completion   analysis
+# @flag         -f, --files=<pattern>    glob patterns to include
+# @flag         -x, --exclude=<pattern>  files or directories to exclude
+# @requires     bun
+# @arg          [<directory>]            path to the codebase (default: current directory)
 
 PLUGIN_DIR="$FRAMEWORK_ROUTE/document"
 

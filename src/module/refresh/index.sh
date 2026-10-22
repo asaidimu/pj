@@ -1,6 +1,3 @@
-# --------
-# summary: (re)generates list of projects
-# --------
 # @about   (re)generates list of projects
 # @usage   pj refresh
 

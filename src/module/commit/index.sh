@@ -1,16 +1,12 @@
 #!/bin/sh
-# --------
-# summary: generate a conventional commit message
-# completion: analysis
-# requires: bun git
-# --------
-# @about   generate a conventional commit message with Google Gemini
-# @usage   pj commit [directory]
-# @flag    -s, --staged       use staged changes instead of unstaged
-# @flag    -t, --type=<type>  commit type (feat, fix, docs, ...; default: inferred)
-# @flag    -d, --docs=<file>  documentation file for context (default: README.md)
-# @requires bun git
-# @arg     [<directory>]      path to the git repository (default: current directory)
+# @about        generate a conventional commit message with Google Gemini
+# @usage        pj commit [directory]
+# @completion   analysis
+# @flag         -s, --staged       use staged changes instead of unstaged
+# @flag         -t, --type=<type>  commit type (feat, fix, docs, ...; default: inferred)
+# @flag         -d, --docs=<file>  documentation file for context (default: README.md)
+# @requires     bun git
+# @arg          [<directory>]      path to the git repository (default: current directory)
 
 PLUGIN_DIR="$FRAMEWORK_ROUTE/commit"
 

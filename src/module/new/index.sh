@@ -1,18 +1,13 @@
 #!/bin/sh
-# --------
-# summary: creates a project from a recipe
-# completion: recipes
-# --------
-# @about   creates a project from a recipe, or scaffolds a script/module
-# @usage   pj new <recipe> <project-name>
-#          pj new --script <file.sh>
-#          pj new --module <name>
-# @flag    -o, --overwrite       overwrite an existing project, script or module
-# @flag    --script=<file.sh>    scaffold a standalone script in the current directory
-# @flag    --module=<name>       scaffold a user module under the plugins directory
-# @flag    --names               list recipe names, one per line (used by completions)
-# @arg     [<recipe>]            recipe name (see the documentation for built-in recipes)
-# @arg     [<project-name>]      name of the project to create
+# @about        creates a project from a recipe, or scaffolds a script/module
+# @usage        pj new <recipe> <project-name>
+# @completion   recipes
+# @flag         -o, --overwrite       overwrite an existing project, script or module
+# @flag         --script=<file.sh>    scaffold a standalone script in the current directory
+# @flag         --module=<name>       scaffold a user module under the plugins directory
+# @flag         --names               list recipe names, one per line (used by completions)
+# @arg          [<recipe>]            recipe name (see the documentation for built-in recipes)
+# @arg          [<project-name>]      name of the project to create
 
 # scaffold a standalone script from the built-in pragma template
 scaffold_script() {

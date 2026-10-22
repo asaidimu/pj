@@ -539,8 +539,8 @@ notify(){
   return "$_status"
 }
 
-# NOTE: the banner artwork is duplicated in assets/installer.sh (self-contained
-# installer). Keep the two in sync when changing it.
+# NOTE: bin/build.sh bundles colors.sh + this file into the generated
+# install.sh, so the installer renders this same banner — no second copy.
 banner(){
     duration=0.02
     printf "\n" && sleep_frac $duration
@@ -614,10 +614,6 @@ load() {
 
 show_version(){
     banner
-    sleep_frac 0.2 &
-    pid=$!
-    load "Checking Version" $pid
-    wait $pid
     bold_green "$(printf '\t     Version %s' "${FRAMEWORK_VERSION#v}")"
     printf '\n'
 }
