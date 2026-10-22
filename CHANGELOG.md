@@ -1,3 +1,10 @@
+# [3.3.0](https://github.com/asaidimu/pj/compare/v3.2.1...v3.3.0) (2026-10-22)
+
+
+### Features
+
+* **cli:** unify pragma metadata and add shell flag completions ([b97a8c3](https://github.com/asaidimu/pj/commit/b97a8c3b9c97240aa6bfffc157ab7f0e43b1eefb))
+
 ## [3.2.1](https://github.com/asaidimu/pj/compare/v3.2.0...v3.2.1) (2026-10-18)
 
 
