@@ -617,3 +617,183 @@ show_version(){
     bold_green "$(printf '\t     Version %s' "${FRAMEWORK_VERSION#v}")"
     printf '\n'
 }
+
+# how many cells the bar occupies (shrinks further on narrow terminals)
+PROGRESS_WIDTH=${PROGRESS_WIDTH:-30}
+
+# progress_bar <current> <total> [<label>] — draw/update a one-line bar
+# on stderr. Call inside a loop with current 1..total; each call rewrites
+# the line in place (CR + clear-to-EOL), so the bar advances without
+# scrolling. Reaching current >= total finishes the line with a newline,
+# so the next output starts on a fresh row. current 0 renders as 0%.
+# Honours FLAG_SILENT (prints nothing when 1) and FLAG_COLORED_OUTPUT
+# (ASCII-only when 0). Width: $PROGRESS_WIDTH, capped to the terminal.
+progress_bar() {
+    _pcur=$1
+    _ptot=$2
+    _plabel=${3:-}
+
+    [ "${FLAG_SILENT:-0}" -eq 0 ] || return 0
+
+    case "$_pcur" in ''|*[!0-9]*) _pcur=0;; esac
+    case "$_ptot" in ''|*[!0-9]*) _ptot=1;; esac
+    [ "$_ptot" -gt 0 ] 2>/dev/null || _ptot=1
+    [ "$_pcur" -gt "$_ptot" ] && _pcur=$_ptot
+
+    _pwidth=$PROGRESS_WIDTH
+    case "$_pwidth" in ''|*[!0-9]*) _pwidth=30;; esac
+    [ "$_pwidth" -ge 4 ] || _pwidth=4
+    _pcols=$(stty size 2>/dev/null | awk '{ print $2 }')
+    case "$_pcols" in ''|*[!0-9]*) _pcols=80;; esac
+    [ "$_pcols" -gt 0 ] || _pcols=80
+    _pcap=$(( _pcols - ${#_plabel} - 20 ))
+    [ "$_pcap" -lt 4 ] && _pcap=4
+    [ "$_pwidth" -gt "$_pcap" ] && _pwidth=$_pcap
+
+    _ppct=$(( _pcur * 100 / _ptot ))
+    _pfill=$(( _ppct * _pwidth / 100 ))
+    _pempty=$(( _pwidth - _pfill ))
+
+    if [ "${FLAG_COLORED_OUTPUT:-1}" -eq 1 ]; then
+        _pbar=""
+        [ "$_pfill" -gt 0 ]  && _pbar="$(bold_green "$(repl '█' "$_pfill")")"
+        [ "$_pempty" -gt 0 ] && _pbar="${_pbar}$(bold_grey "$(repl '░' "$_pempty")")"
+    else
+        _pbar="$(repl '#' "$_pfill")$(repl '-' "$_pempty")"
+    fi
+
+    _pinfo=$(printf '%3d%% (%d/%d)' "$_ppct" "$_pcur" "$_ptot")
+
+    if [ -n "$_plabel" ]; then
+        printf '\r\033[K%s %s %s' "$_plabel" "$_pbar" "$_pinfo" >&2
+    else
+        printf '\r\033[K%s %s' "$_pbar" "$_pinfo" >&2
+    fi
+
+    if [ "$_pcur" -ge "$_ptot" ]; then
+        printf '\n' >&2
+        _progress_open=0
+    else
+        _progress_open=1
+    fi
+    return 0
+}
+
+# progress_end — finish an unfinished bar with a newline (e.g. when the
+# loop exits early on error). No-op if progress_bar already reached
+# 100% (it emits the newline itself), or under FLAG_SILENT.
+progress_end() {
+    [ "${FLAG_SILENT:-0}" -eq 0 ] || return 0
+    [ "${_progress_open:-0}" -eq 1 ] || return 0
+    printf '\n' >&2
+    _progress_open=0
+}
+
+# block width (cells) for the sliding block; defaults to a quarter of the
+# track. Cap to the track in case a caller sets something oversized.
+INDETERMINATE_WIDTH=${INDETERMINATE_WIDTH:-${PROGRESS_WIDTH:-30}}
+INDETERMINATE_BLOCK=${INDETERMINATE_BLOCK:-}
+
+# indeterminate_bar <pid> [<label>] [<done-msg>] — animate a block sliding
+# back and forth across a one-line bar on stderr until process <pid> exits.
+# Companion to load() for phases whose length is unknown; redraws the line
+# in place (CR + clear-to-EOL) at ~10 fps, so it costs one write() per
+# frame. The first frame is drawn before the first liveness check, so even
+# a task that exits instantly still flashes a bar. On completion the line
+# is cleared — or <done-msg> is printed via inform() when one is given —
+# so the caller's success/error lands on a clean row. Caller backgrounds
+# the task and reaps it with wait; this only polls with kill -0.
+#
+# Honours FLAG_SILENT (no output, but still blocks on <pid> so the caller's
+# timing is unchanged) and FLAG_COLORED_OUTPUT (ASCII track/block when 0).
+# Width knobs: INDETERMINATE_WIDTH (falls back to PROGRESS_WIDTH, then 30)
+# and INDETERMINATE_BLOCK; both shrink to fit the terminal per frame, so a
+# resize mid-animation is picked up.
+indeterminate_bar() {
+    _ipid="$1"
+    _ilabel="${2:-}"
+    _idone="${3:-}"
+
+    [ -n "$_ipid" ] || { error "indeterminate_bar: no pid"; return 1; }
+
+    if [ "${FLAG_SILENT:-0}" -ne 0 ]; then
+        while kill -0 "$_ipid" 2>/dev/null; do sleep_frac 0.1; done
+        [ -n "$_idone" ] && inform "$_idone"
+        return 0
+    fi
+
+    _iwidth=$INDETERMINATE_WIDTH
+    case "$_iwidth" in ''|*[!0-9]*) _iwidth=30;; esac
+    [ "$_iwidth" -ge 4 ] || _iwidth=4
+
+    _iblk=$INDETERMINATE_BLOCK
+    case "$_iblk" in ''|*[!0-9]*) _iblk=$(( _iwidth / 4 ));; esac
+    [ "$_iblk" -ge 1 ] || _iblk=1
+    [ "$_iblk" -le "$_iwidth" ] || _iblk=$_iwidth
+
+    _iframe=0
+    _indet_open=1
+    while :; do
+        # per-frame width so a resize is picked up mid-animation
+        _icols=$(stty size 2>/dev/null | awk '{ print $2 }')
+        case "$_icols" in ''|*[!0-9]*) _icols=80;; esac
+        [ "$_icols" -gt 0 ] || _icols=80
+        _iw=$_iwidth
+        _icap=$(( _icols - ${#_ilabel} - 12 ))
+        [ "$_icap" -lt 4 ] && _icap=4
+        [ "$_iw" -gt "$_icap" ] && _iw=$_icap
+        _ib=$_iblk
+        [ "$_ib" -gt "$_iw" ] && _ib=$_iw
+
+        # ping-pong: 0 → trav → 0, one frame per cell, no dwell at ends
+        _itrav=$(( _iw - _ib ))
+        if [ "$_itrav" -le 0 ]; then
+            _ipos=0
+        else
+            _iperiod=$(( 2 * _itrav )) _ip=$(( _iframe % _iperiod ))
+            if [ "$_ip" -le "$_itrav" ]; then
+                _ipos=$_ip;
+            else
+                _ipos=$(( _iperiod - _ip ));
+            fi
+        fi
+        _ibefore=$_ipos
+        _iafter=$(( _iw - _ipos - _ib ))
+
+        if [ "${FLAG_COLORED_OUTPUT:-1}" -eq 1 ]; then
+            _ipre=$(bold_grey "$(repl '░' "$_ibefore")")
+            _iblkdraw=$(bold_cyan "$(repl '█' "$_ib")")
+            _ipost=$(bold_grey "$(repl '░' "$_iafter")")
+        else
+            _ipre=$(repl '-' "$_ibefore")
+            _iblkdraw=$(repl '#' "$_ib")
+            _ipost=$(repl '-' "$_iafter")
+        fi
+
+        if [ -n "$_ilabel" ]; then
+            printf '\r\033[K%s %s%s%s' "$_ilabel" "$_ipre" "$_iblkdraw" "$_ipost" >&2
+        else
+            printf '\r\033[K%s%s%s' "$_ipre" "$_iblkdraw" "$_ipost" >&2
+        fi
+
+        _iframe=$(( _iframe + 1 ))
+
+        kill -0 "$_ipid" 2>/dev/null || break
+        sleep_frac 0.1
+    done
+
+    printf '\r\033[K' >&2
+    _indet_open=0
+    [ -n "$_idone" ] && inform "$_idone"
+    return 0
+}
+
+# indeterminate_end — close an in-progress indeterminate_bar line with a
+# newline. Only useful from a signal trap, where the bar loop is about to
+# be abandoned; a normal finish already clears the line itself.
+#   trap 'indeterminate_end; exit 130' INT
+indeterminate_end() {
+    [ "${_indet_open:-0}" -eq 1 ] || return 0
+    printf '\r\033[K\n' >&2
+    _indet_open=0
+}

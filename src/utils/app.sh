@@ -187,7 +187,7 @@ EOF
     printf "\n\n"
   fi
 
-  bold options
+  bold OPTIONS
   printf "\n    %-16s %s" "-h, --help" "show help"
   [ -n "$APP_VERSION" ] && printf "\n    %-16s %s" "-v, --version" "show version"
   if [ -n "$APP_FLAGS" ]; then
