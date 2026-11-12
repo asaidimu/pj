@@ -1,3 +1,10 @@
+# [3.4.0](https://github.com/asaidimu/pj/compare/v3.3.0...v3.4.0) (2026-11-12)
+
+
+### Features
+
+* **framework:** add scripts guide and progress bar utilities ([2185338](https://github.com/asaidimu/pj/commit/2185338e799968fd5867bbaf2e88696f2d713721))
+
 # [3.3.0](https://github.com/asaidimu/pj/compare/v3.2.1...v3.3.0) (2026-10-22)
 
 
