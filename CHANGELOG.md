@@ -1,3 +1,10 @@
+# [3.5.0](https://github.com/asaidimu/pj/compare/v3.4.0...v3.5.0) (2026-11-12)
+
+
+### Features
+
+* **framework:** add bundle command that bundles the io into a script ([c30898d](https://github.com/asaidimu/pj/commit/c30898d9a55abca4b596b45466ba6114911bed79))
+
 # [3.4.0](https://github.com/asaidimu/pj/compare/v3.3.0...v3.4.0) (2026-11-12)
 
 
