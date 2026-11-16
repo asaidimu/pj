@@ -1,3 +1,10 @@
+## [3.5.1](https://github.com/asaidimu/pj/compare/v3.5.0...v3.5.1) (2026-11-16)
+
+
+### Bug Fixes
+
+* **app:** account for route name in positional argument validation and add variadic argument support ([b1d9ab5](https://github.com/asaidimu/pj/commit/b1d9ab5b375d6634b0cd53fca0cf9f069a8f92c2))
+
 # [3.5.0](https://github.com/asaidimu/pj/compare/v3.4.0...v3.5.0) (2026-11-12)
 
 
