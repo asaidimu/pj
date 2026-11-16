@@ -282,12 +282,20 @@ EOF
   if [ -n "$APP_ARGS" ]; then
     _need=0
     _max=0
+    _variadic=0
+    _npos=$#
+    # For routed scripts the first positional is the route name, not a
+    # user argument; discount it before comparing against declared args.
+    if [ -n "$APP_ROUTES" ] && [ "$_npos" -gt 0 ]; then
+      _npos=$((_npos - 1))
+    fi
     while IFS="$APP_TAB" read -r _n _r _h; do
       [ -n "$_n" ] || continue
+      case "$_n" in *...) _variadic=1;; esac
       _max=$((_max + 1))
       [ "$_r" = "1" ] || continue
       _need=$((_need + 1))
-      if [ "$#" -lt "$_need" ]; then
+      if [ "$_npos" -lt "$_need" ]; then
         _missing="$_n"
         app_help
         panic "$_missing is required"
@@ -295,7 +303,7 @@ EOF
     done <<EOF
 $APP_ARGS
 EOF
-    if [ "$#" -gt "$_max" ]; then
+    if [ "$_variadic" = "0" ] && [ "$_npos" -gt "$_max" ]; then
       panic "unexpected argument: $((_max + 1))th (flags come before arguments, see --help)"
     fi
   fi
